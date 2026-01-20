@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝可梦心金捕捉追踪器</title>
+    
+    <!-- 1. 加载 Tailwind CSS 样式库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. 加载 React 核心库 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 3. 加载 Babel (用于在浏览器中解析 JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 4. 加载 Lucide 图标库 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans SC', sans-serif; }
+        .pokemon-card { transition: all 0.2s ease; }
+        .grayscale-img { filter: grayscale(100%); opacity: 0.3; }
+        /* 隐藏滚动条但保持功能 */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <!-- 注意：这里的 type 必须是 text/babel -->
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // 数据源
+        const JOHTO_DEX = [
+            {j:1,n:"菊草叶",nat:152},{j:2,n:"月桂叶",nat:153},{j:3,n:"大竺葵",nat:154},{j:4,n:"火球鼠",nat:155},
+            {j:5,n:"火岩鼠",nat:156},{j:6,n:"火暴兽",nat:157},{j:7,n:"小锯鳄",nat:158},{j:8,n:"蓝鳄",nat:159},
+            {j:9,n:"大力鳄",nat:160},{j:10,n:"波波",nat:16},{j:11,n:"比比鸟",nat:17},{j:12,n:"大比鸟",nat:18},
+            {j:13,n:"小拉达",nat:19},{j:14,n:"拉达",nat:20},{j:15,n:"烈雀",nat:21},{j:16,n:"大嘴雀",nat:22},
+            {j:17,n:"阿柏蛇",nat:23},{j:18,n:"阿柏怪",nat:24},{j:19,n:"穿山鼠",nat:27},{j:20,n:"穿山王",nat:28},
+            {j:21,n:"尼多兰",nat:29},{j:22,n:"尼多娜",nat:30},{j:23,n:"尼多后",nat:31},{j:24,n:"尼多朗",nat:32},
+            {j:25,n:"尼多力诺",nat:33},{j:26,n:"尼多王",nat:34},{j:27,n:"皮皮",nat:35},{j:28,n:"皮可西",nat:36},
+            {j:29,n:"六尾",nat:37},{j:30,n:"九尾",nat:38},{j:31,n:"胖丁",nat:39},{j:32,n:"胖可丁",nat:40},
+            {j:33,n:"超音蝠",nat:41},{j:34,n:"大嘴蝠",nat:42},{j:35,n:"叉字蝠",nat:169},{j:36,n:"走路草",nat:43},
+            {j:37,n:"臭臭花",nat:44},{j:38,n:"霸王花",nat:45},{j:39,n:"美丽花",nat:182},{j:40,n:"派拉斯",nat:46},
+            {j:41,n:"派拉斯特",nat:47},{j:42,n:"毛球",nat:48},{j:43,n:"摩鲁蛾",nat:49},{j:44,n:"喵喵",nat:52},
+            {j:45,n:"猫老大",nat:53},{j:46,n:"可达鸭",nat:54},{j:47,n:"哥达鸭",nat:55},{j:48,n:"猴怪",nat:56},
+            {j:49,n:"火暴猴",nat:57},{j:50,n:"卡蒂狗",nat:58},{j:51,n:"风速狗",nat:59},{j:52,n:"蚊香蝌蚪",nat:60},
+            {j:53,n:"蚊香君",nat:61},{j:54,n:"蚊香泳士",nat:62},{j:55,n:"蚊香蛙皇",nat:186},{j:56,n:"凯西",nat:63},
+            {j:57,n:"勇基拉",nat:64},{j:58,n:"胡地",nat:65},{j:59,n:"腕力",nat:66},{j:60,n:"豪力",nat:67},
+            {j:61,n:"怪力",nat:68},{j:62,n:"喇叭芽",nat:69},{j:63,n:"口呆花",nat:70},{j:64,n:"大食花",nat:71},
+            {j:65,n:"玛瑙水母",nat:72},{j:66,n:"毒刺水母",nat:73},{j:67,n:"小拳石",nat:74},{j:68,n:"隆隆石",nat:75},
+            {j:69,n:"隆隆岩",nat:76},{j:70,n:"小火马",nat:77},{j:71,n:"烈焰马",nat:78},{j:72,n:"呆呆兽",nat:79},
+            {j:73,n:"呆壳兽",nat:80},{j:74,n:"呆呆王",nat:199},{j:75,n:"小磁怪",nat:81},{j:76,n:"三合一磁怪",nat:82},
+            {j:77,n:"自爆磁怪",nat:462},{j:78,n:"大葱鸭",nat:83},{j:79,n:"嘟嘟",nat:84},{j:80,n:"嘟嘟利",nat:85},
+            {j:81,n:"小海狮",nat:86},{j:82,n:"白海狮",nat:87},{j:83,n:"臭泥",nat:88},{j:84,n:"臭臭泥",nat:89},
+            {j:85,n:"大舌贝",nat:90},{j:86,n:"刺甲贝",nat:91},{j:87,n:"鬼斯",nat:92},{j:88,n:"鬼斯通",nat:93},
+            {j:89,n:"耿鬼",nat:94},{j:90,n:"大岩蛇",nat:95},{j:91,n:"大钢蛇",nat:208},{j:92,n:"素利普",nat:96},
+            {j:93,n:"素利拍",nat:97},{j:94,n:"大钳蟹",nat:98},{j:95,n:"巨钳蟹",nat:99},{j:96,n:"蛋蛋",nat:102},
+            {j:97,n:"椰蛋树",nat:103},{j:98,n:"卡拉卡拉",nat:104},{j:99,n:"嘎啦嘎啦",nat:105},{j:100,n:"巴尔郎",nat:236},
+            {j:101,n:"飞腿郎",nat:106},{j:102,n:"快拳郎",nat:107},{j:103,n:"战舞郎",nat:237},{j:104,n:"大舌头",nat:108},
+            {j:105,n:"大舌舔",nat:463},{j:106,n:"瓦斯弹",nat:109},{j:107,n:"双弹瓦斯",nat:110},{j:108,n:"独角犀牛",nat:111},
+            {j:109,n:"钻角犀兽",nat:112},{j:110,n:"超甲狂犀",nat:464},{j:111,n:"藤蔓怪",nat:114},{j:112,n:"巨蔓藤",nat:465},
+            {j:113,n:"袋兽",nat:115},{j:114,n:"墨海马",nat:116},{j:115,n:"海刺龙",nat:117},{j:116,n:"刺龙王",nat:230},
+            {j:117,n:"角金鱼",nat:118},{j:118,n:"金鱼王",nat:119},{j:119,n:"海星星",nat:120},{j:120,n:"宝石海星",nat:121},
+            {j:121,n:"飞天螳螂",nat:123},{j:122,n:"巨钳螳螂",nat:212},{j:123,n:"迷唇娃",nat:238},{j:124,n:"迷唇姐",nat:124},
+            {j:125,n:"电击怪",nat:239},{j:126,n:"电击兽",nat:125},{j:127,n:"电击魔兽",nat:466},{j:128,n:"小鸭嘴龙",nat:240},
+            {j:129,n:"鸭嘴火兽",nat:126},{j:130,n:"鸭嘴炎兽",nat:467},{j:131,n:"凯罗斯",nat:127},{j:132,n:"肯泰罗",nat:128},
+            {j:133,n:"鲤鱼王",nat:129},{j:134,n:"暴鲤龙",nat:130},{j:135,n:"拉普拉斯",nat:131},{j:136,n:"百变怪",nat:132},
+            {j:137,n:"伊布",nat:133},{j:138,n:"水伊布",nat:134},{j:139,n:"雷伊布",nat:135},{j:140,n:"火伊布",nat:136},
+            {j:141,n:"太阳伊布",nat:196},{j:142,n:"月亮伊布",nat:197},{j:143,n:"多边兽",nat:137},{j:144,n:"多边兽Ⅱ",nat:233},
+            {j:145,n:"多边兽Ｚ",nat:474},{j:146,n:"迷你龙",nat:147},{j:147,n:"哈克龙",nat:148},{j:148,n:"快龙",nat:149},
+            {j:149,n:"尾立",nat:161},{j:150,n:"大尾立",nat:162},{j:151,n:"咕咕",nat:163},{j:152,n:"猫头夜鹰",nat:164},
+            {j:153,n:"芭芭蝶",nat:165},{j:154,n:"安纳蝶",nat:166},{j:155,n:"圆丝蛛",nat:167},{j:156,n:"阿利多斯",nat:168},
+            {j:157,n:"灯笼鱼",nat:170},{j:158,n:"电灯怪",nat:171},{j:159,n:"皮丘",nat:172},{j:160,n:"皮宝宝",nat:173},
+            {j:161,n:"宝宝丁",nat:174},{j:162,n:"波格比",nat:175},{j:163,n:"波格基古",nat:176},{j:164,n:"波格基斯",nat:468},
+            {j:165,n:"天然雀",nat:177},{j:166,n:"天然鸟",nat:178},{j:167,n:"咩利羊",nat:179},{j:168,n:"茸茸羊",nat:180},
+            {j:169,n:"电龙",nat:181},{j:170,n:"玛力露",nat:183},{j:171,n:"玛力露丽",nat:184},{j:172,n:"胡说树",nat:185},
+            {j:173,n:"毽子草",nat:187},{j:174,n:"毽子花",nat:188},{j:175,n:"毽子棉",nat:189},{j:176,n:"长尾怪手",nat:190},
+            {j:177,n:"双尾怪手",nat:424},{j:178,n:"向日种子",nat:191},{j:179,n:"向日花怪",nat:192},{j:180,n:"蜻蜻蜓",nat:193},
+            {j:181,n:"远古巨蜻",nat:469},{j:182,n:"乌波",nat:194},{j:183,n:"沼王",nat:195},{j:184,n:"黑暗鸦",nat:198},
+            {j:185,n:"乌鸦头头",nat:430},{j:186,n:"梦妖",nat:200},{j:187,n:"梦妖魔",nat:429},{j:188,n:"未知图腾",nat:201},
+            {j:189,n:"小果然",nat:360},{j:190,n:"果然翁",nat:202},{j:191,n:"麒麟奇",nat:203},{j:192,n:"榛果球",nat:204},
+            {j:193,n:"佛烈托斯",nat:205},{j:194,n:"土龙弟弟",nat:206},{j:195,n:"天蝎",nat:207},{j:196,n:"天蝎王",nat:472},
+            {j:197,n:"布鲁",nat:209},{j:198,n:"布鲁皇",nat:210},{j:199,n:"千针鱼",nat:211},{j:200,n:"壶壶",nat:213},
+            {j:201,n:"赫拉克罗斯",nat:214},{j:202,n:"狃拉",nat:215},{j:203,n:"玛狃拉",nat:461},{j:204,n:"熊宝宝",nat:216},
+            {j:205,n:"圈圈熊",nat:217},{j:206,n:"熔岩虫",nat:218},{j:207,n:"熔岩蜗牛",nat:219},{j:208,n:"小山猪",nat:220},
+            {j:209,n:"长毛猪",nat:221},{j:210,n:"象牙猪",nat:473},{j:211,n:"太阳珊瑚",nat:222},{j:212,n:"铁炮鱼",nat:223},
+            {j:213,n:"章鱼桶",nat:224},{j:214,n:"信使鸟",nat:225},{j:215,n:"巨翅飞鱼",nat:226},{j:216,n:"小曼泰因",nat:458},
+            {j:217,n:"盔甲鸟",nat:227},{j:218,n:"戴鲁比",nat:228},{j:219,n:"黑鲁加",nat:229},{j:220,n:"小小象",nat:231},
+            {j:221,n:"顿甲",nat:232},{j:222,n:"惊角鹿",nat:234},{j:223,n:"图图犬",nat:235},{j:224,n:"大奶罐",nat:241},
+            {j:225,n:"幸福蛋",nat:242},{j:226,n:"雷公",nat:243},{j:227,n:"炎帝",nat:244},{j:228,n:"水君",nat:245},
+            {j:229,n:"幼基拉斯",nat:246},{j:230,n:"沙基拉斯",nat:247},{j:231,n:"班基拉斯",nat:248},{j:232,n:"洛奇亚",nat:249},
+            {j:233,n:"凤王",nat:250},{j:234,n:"妙蛙种子",nat:1},{j:235,n:"妙蛙草",nat:2},{j:236,n:"妙蛙花",nat:3},
+            {j:237,n:"小火龙",nat:4},{j:238,n:"火恐龙",nat:5},{j:239,n:"喷火龙",nat:6},{j:240,n:"杰尼龟",nat:7},
+            {j:241,n:"卡咪龟",nat:8},{j:242,n:"水箭龟",nat:9},{j:243,n:"急冻鸟",nat:144},{j:244,n:"闪电鸟",nat:145},
+            {j:245,n:"火焰鸟",nat:146},{j:246,n:"超梦",nat:150},{j:247,n:"梦幻",nat:151},{j:248,n:"木守宫",nat:252},
+            {j:249,n:"森林蜥蜴",nat:253},{j:250,n:"蜥蜴王",nat:254},{j:251,n:"火稚鸡",nat:255},{j:252,n:"力壮鸡",nat:256},
+            {j:253,n:"火焰鸡",nat:257},{j:254,n:"水跃鱼",nat:258},{j:255,n:"沼跃鱼",nat:259},{j:256,n:"巨沼怪",nat:260}
+        ];
+
+        const STORAGE_KEY = 'hg_poke_v5';
+
+        function App() {
+            const [captured, setCaptured] = useState(() => {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    return saved ? new Set(JSON.parse(saved)) : new Set();
+                } catch (e) { return new Set(); }
+            });
+
+            const [view, setView] = useState('all');
+            const [search, setSearch] = useState('');
+
+            // 初始化图标
+            useEffect(() => { lucide.createIcons(); }, []);
+            useEffect(() => {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(captured)));
+                lucide.createIcons();
+            }, [captured]);
+
+            const filtered = useMemo(() => {
+                return JOHTO_DEX.filter(p => {
+                    const nameMatch = p.n.includes(search);
+                    const idMatch = String(p.j).padStart(3, '0').includes(search);
+                    const viewMatch = view === 'all' || captured.has(p.j);
+                    return (nameMatch || idMatch) && viewMatch;
+                });
+            }, [search, view, captured]);
+
+            const toggle = (id) => {
+                setCaptured(prev => {
+                    const next = new Set(prev);
+                    if (next.has(id)) next.delete(id);
+                    else next.add(id);
+                    return next;
+                });
+            };
+
+            const progress = (captured.size / JOHTO_DEX.length) * 100;
+
+            return (
+                <div className="pb-10 min-h-screen">
+                    {/* 头部导航 */}
+                    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+                        <div className="max-w-4xl mx-auto px-4 py-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h1 className="text-xl font-black text-red-600 tracking-tighter flex items-center gap-2">
+                                        <i data-lucide="pocket" className="w-5 h-5"></i> 心金版追踪器
+                                    </h1>
+                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Johto Collection</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-lg font-black text-slate-800 font-mono">
+                                        {captured.size} <span className="text-gray-300">/</span> {JOHTO_DEX.length}
+                                    </div>
+                                    <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1 ring-1 ring-gray-200">
+                                        <div className="h-full bg-red-500 transition-all duration-700" style={{width: progress + "%"}} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <i data-lucide="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                    <input 
+                                        type="text" 
+                                        placeholder="搜索名称或编号..." 
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-red-500/20 outline-none text-sm transition-all"
+                                        value={search}
+                                        onChange={e => setSearch(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex p-1 bg-gray-100 rounded-xl">
+                                    <button onClick={()=>setView('all')} className={"flex-1 py-2 text-xs font-bold rounded-lg transition-all " + (view === 'all' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500')}>
+                                        所有图鉴
+                                    </button>
+                                    <button onClick={()=>setView('captured')} className={"flex-1 py-2 text-xs font-bold rounded-lg transition-all " + (view === 'captured' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500')}>
+                                        已捕获
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* 列表内容 */}
+                    <main className="max-w-4xl mx-auto px-4 mt-6">
+                        {filtered.length > 0 ? (
+                            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                                {filtered.map(p => {
+                                    const isCap = captured.has(p.j);
+                                    return (
+                                        <button 
+                                            key={p.j} 
+                                            onClick={()=>toggle(p.j)}
+                                            className={"pokemon-card flex flex-col items-center p-3 rounded-2xl border-2 transition-all " + (isCap ? "bg-white border-red-500 shadow-md ring-1 ring-red-100 scale-[1.02]" : "bg-white border-transparent shadow-sm hover:border-gray-200")}
+                                        >
+                                            <div className="relative mb-2">
+                                                <img 
+                                                    src={"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/" + p.nat + ".png"} 
+                                                    className={"w-16 h-16 object-contain transition-all duration-500 " + (isCap ? "" : "grayscale-img")}
+                                                    alt={p.n}
+                                                />
+                                                {isCap && <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 ring-2 ring-white">
+                                                    <i data-lucide="check" className="w-3 h-3"></i>
+                                                </div>}
+                                            </div>
+                                            <span className="text-[10px] font-mono font-bold text-gray-400">#{String(p.j).padStart(3, '0')}</span>
+                                            <span className={"text-xs font-bold truncate w-full " + (isCap ? "text-red-600" : "text-gray-600")}>{p.n}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="py-24 text-center text-gray-300">
+                                <i data-lucide="ghost" className="w-12 h-12 mx-auto mb-2 opacity-20"></i>
+                                <p className="text-sm">没有找到相关的宝可梦</p>
+                            </div>
+                        )}
+                    </main>
+
+                    {captured.size === JOHTO_DEX.length && (
+                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full shadow-2xl font-black text-sm animate-bounce">
+                            🏆 城都地区大师成就达成！
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

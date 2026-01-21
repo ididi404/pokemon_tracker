@@ -18,11 +18,16 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
         
+        /* 极致修复：确保整个网页背景和顶部刘海区域绝对纯白 */
+        html {
+            background-color: #ffffff;
+        }
+
         body { 
             font-family: 'Noto Sans SC', sans-serif; 
             -webkit-text-size-adjust: 100%;
-            /* 适配刘海屏的安全区域内边距 */
-            padding-top: env(safe-area-inset-top);
+            margin: 0;
+            background-color: #ffffff; /* 保持 body 纯白防止刘海变色 */
         }
         
         .pokemon-card { 
@@ -40,21 +45,29 @@
 
         ::-webkit-scrollbar { width: 0px; background: transparent; }
 
-        input { font-size: 16px !important; }
-
-        .tab-container {
-            padding: 4px;
-            display: flex;
-            gap: 4px;
+        /* 强制覆盖 iOS 输入框默认样式 */
+        input { 
+            font-size: 16px !important; 
+            -webkit-appearance: none;
         }
 
         /* 修复页面内容不会被刘海遮挡 */
         header {
-            padding-top: calc(0.75rem + env(safe-area-inset-top));
+            padding-top: env(safe-area-inset-top);
+        }
+
+        /* 分段控件样式优化 */
+        .tab-segment {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            background-color: #f1f5f9; /* slate-100 */
+            border-radius: 12px;
+            padding: 3px;
         }
     </style>
 </head>
-<body class="bg-slate-100">
+<body class="bg-white">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -65,8 +78,7 @@
                 pocket: <path d="M4 3h16a2 2 0 0 1 2 2v6a10 10 0 0 1-10 10A10 10 0 0 1 2 11V5a2 2 0 0 1 2-2z" />,
                 search: <React.Fragment><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></React.Fragment>,
                 check: <path d="M20 6 9 17l-5-5"/>,
-                ghost: <React.Fragment><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></React.Fragment>,
-                refresh: <React.Fragment><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></React.Fragment>
+                ghost: <React.Fragment><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></React.Fragment>
             };
             return (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -173,7 +185,7 @@
             };
         });
 
-        const STORAGE_KEY = 'hgss_national_v5';
+        const STORAGE_KEY = 'hgss_national_v6_final';
 
         function App() {
             const [captured, setCaptured] = useState(() => {
@@ -227,23 +239,18 @@
             const progress = (capturedInView / totalInView) * 100;
 
             return (
-                <div className="pb-20 min-h-screen">
-                    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
-                        <div className="max-w-5xl mx-auto px-4 pb-3">
-                            {/* 第一行：标题 + 图鉴切换 (左) | 进度 (右) */}
-                            <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col min-h-screen">
+                    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+                        <div className="max-w-5xl mx-auto px-4 pb-4">
+                            {/* 第一行：标题和图鉴切换 */}
+                            <div className="flex justify-between items-center mb-4 mt-3">
                                 <div className="flex items-center gap-3">
                                     <div className="flex flex-col">
                                         <h1 className="text-lg font-black text-red-600 tracking-tighter flex items-center gap-1">
                                             <Icon name="pocket" className="w-5 h-5" /> 心金魂银图鉴
                                         </h1>
-                                        <div className="hidden sm:block text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none font-mono">
-                                            Tracker
-                                        </div>
                                     </div>
-                                    
-                                    {/* 图鉴切换 */}
-                                    <div className="flex p-0.5 bg-slate-200 rounded-lg">
+                                    <div className="flex p-0.5 bg-slate-200 rounded-lg shrink-0">
                                         <button 
                                             onClick={()=>setDexMode('national')}
                                             className={"px-3 py-1 text-[11px] font-black rounded-md transition-all " + (dexMode === 'national' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500')}
@@ -269,31 +276,31 @@
                                 </div>
                             </div>
 
-                            {/* 第二行：搜索和状态筛选 */}
-                            <div className="grid grid-cols-12 gap-2">
-                                <div className="relative col-span-6 sm:col-span-8">
+                            {/* 第二行：搜索和 Tab 切换 (修复宽度比例) */}
+                            <div className="grid grid-cols-12 gap-3 items-center">
+                                <div className="relative col-span-7 sm:col-span-8">
                                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                                         <Icon name="search" className="w-3.5 h-3.5" />
                                     </div>
                                     <input 
                                         type="text" 
                                         placeholder="搜索..." 
-                                        className="w-full pl-9 pr-3 py-2.5 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-red-500/20 outline-none text-sm transition-all appearance-none"
+                                        className="w-full h-10 pl-9 pr-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-red-500/20 outline-none text-sm transition-all"
                                         value={search}
                                         onChange={e => setSearch(e.target.value)}
                                     />
                                 </div>
                                 
-                                <div className="bg-slate-100 rounded-xl tab-container col-span-6 sm:col-span-4 p-0.5">
+                                <div className="tab-segment col-span-5 sm:col-span-4">
                                     <button 
                                         onClick={()=>setView('all')} 
-                                        className={"flex-1 py-1.5 text-xs font-black rounded-lg transition-all " + (view === 'all' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500')}
+                                        className={"flex-1 h-full text-sm font-black rounded-lg transition-all flex items-center justify-center " + (view === 'all' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500')}
                                     >
                                         所有
                                     </button>
                                     <button 
                                         onClick={()=>setView('captured')} 
-                                        className={"flex-1 py-1.5 text-xs font-black rounded-lg transition-all " + (view === 'captured' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500')}
+                                        className={"flex-1 h-full text-sm font-black rounded-lg transition-all flex items-center justify-center " + (view === 'captured' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500')}
                                     >
                                         已捕
                                     </button>
@@ -302,56 +309,58 @@
                         </div>
                     </header>
 
-                    <main className="max-w-5xl mx-auto px-4 mt-6">
-                        {finalFiltered.length > 0 ? (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
-                                {finalFiltered.map(p => {
-                                    const isCap = captured.has(p.natId);
-                                    const displayId = dexMode === 'johto' ? p.johtoId : p.natId;
-                                    const idPrefix = dexMode === 'johto' ? 'J' : 'N';
-                                    
-                                    return (
-                                        <button 
-                                            key={p.natId} 
-                                            onClick={()=>toggle(p.natId)}
-                                            className={"pokemon-card relative flex flex-col items-center p-3 rounded-2xl border-2 transition-all active:scale-95 " + (isCap ? "bg-white border-red-500 shadow-lg shadow-red-200/50" : "bg-white border-transparent shadow-sm hover:border-slate-300")}
-                                        >
-                                            {isCap && (
-                                                <div className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-0.5 ring-2 ring-white shadow-sm z-20">
-                                                    <Icon name="check" className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    {/* 内容展示区：独立的背景容器 */}
+                    <div className="flex-1 bg-slate-100 pb-20">
+                        <main className="max-w-5xl mx-auto px-4 pt-6">
+                            {finalFiltered.length > 0 ? (
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
+                                    {finalFiltered.map(p => {
+                                        const isCap = captured.has(p.natId);
+                                        const displayId = dexMode === 'johto' ? p.johtoId : p.natId;
+                                        const idPrefix = dexMode === 'johto' ? 'J' : 'N';
+                                        
+                                        return (
+                                            <button 
+                                                key={p.natId} 
+                                                onClick={()=>toggle(p.natId)}
+                                                className={"pokemon-card relative flex flex-col items-center p-3 rounded-xl border-2 transition-all active:scale-95 " + (isCap ? "bg-white border-red-500 shadow-lg shadow-red-200/40" : "bg-white border-transparent shadow-sm hover:border-slate-300")}
+                                            >
+                                                {isCap && (
+                                                    <div className="absolute top-1.5 right-1.5 bg-red-600 text-white rounded-full p-0.5 ring-2 ring-white shadow-sm z-20">
+                                                        <Icon name="check" className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="mb-2 w-full aspect-square flex items-center justify-center relative">
+                                                    {isCap && <div className="absolute inset-2 bg-red-50 rounded-full blur-xl opacity-60"></div>}
+                                                    <img 
+                                                        src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${p.natId}.png`} 
+                                                        className={"pokemon-thumb w-full h-full object-contain relative z-10 " + (isCap ? "scale-110 drop-shadow-lg" : "grayscale-img")}
+                                                        alt={p.name}
+                                                        loading="lazy"
+                                                        onerror={(e) => {
+                                                            e.target.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.natId}.png`;
+                                                        }}
+                                                    />
                                                 </div>
-                                            )}
-                                            
-                                            <div className="mb-2 w-full aspect-square flex items-center justify-center relative">
-                                                {/* 背景微光 */}
-                                                {isCap && <div className="absolute inset-2 bg-red-50 rounded-full blur-xl opacity-60"></div>}
-                                                <img 
-                                                    src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${p.natId}.png`} 
-                                                    className={"pokemon-thumb w-full h-full object-contain relative z-10 " + (isCap ? "scale-110 drop-shadow-lg" : "grayscale-img")}
-                                                    alt={p.name}
-                                                    loading="lazy"
-                                                    onerror={(e) => {
-                                                        e.target.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.natId}.png`;
-                                                    }}
-                                                />
-                                            </div>
-                                            <span className="text-[9px] font-mono font-black text-slate-300">
-                                                {idPrefix}#{String(displayId).padStart(3, '0')}
-                                            </span>
-                                            <span className={"text-[12px] font-black truncate w-full mt-0.5 " + (isCap ? "text-red-600" : "text-slate-600")}>
-                                                {p.name}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="py-24 text-center text-slate-300">
-                                <Icon name="ghost" className="w-12 h-12 mx-auto mb-3 opacity-10" />
-                                <p className="text-xs font-bold tracking-widest uppercase opacity-40">找不到匹配</p>
-                            </div>
-                        )}
-                    </main>
+                                                <span className="text-[9px] font-mono font-black text-slate-300">
+                                                    {idPrefix}#{String(displayId).padStart(3, '0')}
+                                                </span>
+                                                <span className={"text-[12px] font-black truncate w-full mt-0.5 " + (isCap ? "text-red-600" : "text-slate-600")}>
+                                                    {p.name}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="py-24 text-center text-slate-300">
+                                    <Icon name="ghost" className="w-12 h-12 mx-auto mb-3 opacity-10" />
+                                    <p className="text-xs font-bold tracking-widest uppercase opacity-40">找不到匹配</p>
+                                </div>
+                            )}
+                        </main>
+                    </div>
 
                     {capturedInView === totalInView && capturedInView > 0 && (
                         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-orange-500 text-white px-8 py-4 rounded-full shadow-2xl font-black text-xs animate-bounce z-50 border-4 border-white/30">

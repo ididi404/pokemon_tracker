@@ -20,43 +20,16 @@
 
     <style>
         /* 强制隐藏网页滚动条 */
-        ::-webkit-scrollbar {
-            display: none;
-        }
-        html {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .pokeball-spin {
-            animation: spin 2s linear infinite;
-        }
-        @keyframes spin {
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* 仅在支持鼠标悬停的设备上启用卡片浮动效果 */
+        ::-webkit-scrollbar { display: none; }
+        html { -ms-overflow-style: none; scrollbar-width: none; -webkit-tap-highlight-color: transparent; }
+        .pokeball-spin { animation: spin 2s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
         @media (hover: hover) {
-            .card-hover:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            }
+            .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
         }
-
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-        }
-
-        .caret-red-500 {
-            caret-color: #ef4444;
-        }
-
-        /* 强制表格单元格垂直居中 */
-        .table-valign-middle th,
-        .table-valign-middle td {
-            vertical-align: middle !important;
-        }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+        .caret-red-500 { caret-color: #ef4444; }
+        .table-valign-middle th, .table-valign-middle td { vertical-align: middle !important; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
@@ -66,71 +39,23 @@
         const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
         // --- 图标组件 ---
-        const IconPokeball = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M22 12h-6.8a3.2 3.2 0 0 0-6.4 0H2"></path>
-                <circle cx="12" cy="12" r="2.5"></circle>
-            </svg>
-        );
-        const IconCheck = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>
-        );
-        const IconSearch = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        );
-        const IconDownload = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        );
-        const IconUpload = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-        );
-        const IconInfo = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-        );
-        const IconX = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        );
-        const IconArrowRight = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        );
-        // 【新增】垃圾桶图标
-        const IconTrash = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        );
+        const IconPokeball = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><path d="M22 12h-6.8a3.2 3.2 0 0 0-6.4 0H2"></path><circle cx="12" cy="12" r="2.5"></circle></svg>;
+        const IconCheck = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>;
+        const IconSearch = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>;
+        // 互换图标定义：导出用 Upload (Arrow Up)，导入用 Download (Arrow Down)
+        const IconExportArrow = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
+        const IconImportArrow = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const IconInfo = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
+        const IconX = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+        const IconArrowRight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>;
+        const IconTrash = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
 
-        // --- 常量 ---
         const URL_NATIONAL = "https://raw.githubusercontent.com/42arch/pokemon-dataset-zh/main/data/pokedex/pokedex_national.json";
         const URL_JOHTO = "https://raw.githubusercontent.com/42arch/pokemon-dataset-zh/main/data/pokedex/pokedex_johto.json";
         const URL_DETAIL_BASE = "https://raw.githubusercontent.com/42arch/pokemon-dataset-zh/main/data/pokemon/";
 
-        // 属性颜色映射表
-        const TYPE_COLORS = {
-            "草": "#78C850", "Grass": "#78C850",
-            "毒": "#A040A0", "Poison": "#A040A0",
-            "火": "#F08030", "Fire": "#F08030",
-            "飞行": "#8990E4", "Flying": "#8990E4", 
-            "水": "#6890F0", "Water": "#6890F0",
-            "虫": "#A8B820", "Bug": "#A8B820",
-            "一般": "#A8A878", "Normal": "#A8A878",
-            "恶": "#705848", "Dark": "#705848",
-            "超能力": "#F85888", "Psychic": "#F85888",
-            "钢": "#B8B8D0", "Steel": "#B8B8D0",
-            "地面": "#E0C068", "Ground": "#E0C068",
-            "电": "#F8D030", "Electric": "#F8D030",
-            "冰": "#98D8D8", "Ice": "#98D8D8",
-            "妖精": "#EE99AC", "Fairy": "#EE99AC",
-            "格斗": "#C03028", "Fighting": "#C03028",
-            "岩石": "#B8A038", "Rock": "#B8A038",
-            "幽灵": "#705898", "Ghost": "#705898",
-            "龙": "#7038F8", "Dragon": "#7038F8"
-        };
-        
-        const CAT_COLORS = {
-            "物理": "#C92112",
-            "特殊": "#4F5870",
-            "变化": "#8C888C"
-        };
+        const TYPE_COLORS = { "草": "#78C850", "Grass": "#78C850", "毒": "#A040A0", "Poison": "#A040A0", "火": "#F08030", "Fire": "#F08030", "飞行": "#8990E4", "Flying": "#8990E4", "水": "#6890F0", "Water": "#6890F0", "虫": "#A8B820", "Bug": "#A8B820", "一般": "#A8A878", "Normal": "#A8A878", "恶": "#705848", "Dark": "#705848", "超能力": "#F85888", "Psychic": "#F85888", "钢": "#B8B8D0", "Steel": "#B8B8D0", "地面": "#E0C068", "Ground": "#E0C068", "电": "#F8D030", "Electric": "#F8D030", "冰": "#98D8D8", "Ice": "#98D8D8", "妖精": "#EE99AC", "Fairy": "#EE99AC", "格斗": "#C03028", "Fighting": "#C03028", "岩石": "#B8A038", "Rock": "#B8A038", "幽灵": "#705898", "Ghost": "#705898", "龙": "#7038F8", "Dragon": "#7038F8" };
+        const CAT_COLORS = { "物理": "#C92112", "特殊": "#4F5870", "变化": "#8C888C" };
 
         const getText = (val) => {
             if (val === null || val === undefined) return '';
@@ -139,10 +64,26 @@
             if (typeof val === 'object') return val.zh || val.en || val.ja || '';
             return String(val);
         };
-
         const getTypeClass = (type) => {
             const t = getText(type).toLowerCase();
             return `type-${t} text-white px-2 py-0.5 rounded-full text-xs font-bold shadow-sm`;
+        };
+
+        // --- 确认弹窗组件 ---
+        const ConfirmModal = ({ isOpen, onClose, onConfirm, message }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-6 transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-slate-800 mb-2">确认操作</h3>
+                        <p className="text-slate-600 mb-6">{message}</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={onClose} className="px-4 py-2 rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 font-medium transition-colors">取消</button>
+                            <button onClick={() => { onConfirm(); onClose(); }} className="px-4 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600 font-medium transition-colors shadow-sm shadow-red-200">确定</button>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
         // --- 详情弹窗组件 ---
@@ -153,259 +94,64 @@
 
             useEffect(() => {
                 const fetchDetail = async () => {
-                    if (!nationalId || isNaN(nationalId)) {
-                         setLoading(false);
-                         setError("无效的宝可梦编号");
-                         return;
-                    }
+                    if (!nationalId || isNaN(nationalId)) { setLoading(false); setError("无效的宝可梦编号"); return; }
                     try {
-                        setLoading(true);
-                        setError(null);
-                        
+                        setLoading(true); setError(null);
                         const queryId = String(nationalId).padStart(4, '0');
                         const encodedName = encodeURIComponent(name);
-                        const fileName = `${queryId}-${encodedName}.json`;
-                        
-                        const res = await fetch(`${URL_DETAIL_BASE}${fileName}`);
+                        const res = await fetch(`${URL_DETAIL_BASE}${queryId}-${encodedName}.json`);
                         if (!res.ok) {
-                            if (res.status === 404) {
-                                setError("暂未收录该宝可梦的详细数据");
-                                return;
-                            }
+                            if (res.status === 404) { setError("暂未收录该宝可梦的详细数据"); return; }
                             throw new Error(`HTTP Error: ${res.status}`);
                         }
                         const json = await res.json();
                         setData(json);
-                    } catch (err) {
-                        console.warn("Detail Fetch Warning:", err);
-                        setError("数据加载失败，请稍后重试");
-                    } finally {
-                        setLoading(false);
-                    }
+                    } catch (err) { console.warn(err); setError("数据加载失败"); } finally { setLoading(false); }
                 };
                 if (nationalId && name) fetchDetail();
             }, [nationalId, name]);
 
-            useEffect(() => {
-                document.body.style.overflow = 'hidden';
-                return () => { document.body.style.overflow = ''; };
-            }, []);
+            useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = ''; }; }, []);
 
-            const getOfficialArtwork = (id) => {
-                return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-            };
-
-            const getSpriteUrl = (id) => {
-                return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-            };
+            const getOfficialArtwork = (id) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+            const getSpriteUrl = (id) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 
             if (!pokemonId) return null;
 
             const primaryForm = (data && data.forms && Array.isArray(data.forms)) ? data.forms[0] : null;
-            
-            const statsData = (data && Array.isArray(data.stats) && data.stats.length > 0) 
-                ? data.stats[0].data 
-                : null;
-            
+            const statsData = (data && Array.isArray(data.stats) && data.stats.length > 0) ? data.stats[0].data : null;
             let maxStatVal = 160;
             if (statsData) {
-                const allStats = [
-                    statsData.hp, statsData.attack, statsData.defense, 
-                    statsData.sp_attack, statsData.sp_defense, statsData.speed
-                ].map(v => Number(v) || 0);
-                const currentMax = Math.max(...allStats);
+                const vals = [statsData.hp, statsData.attack, statsData.defense, statsData.sp_attack, statsData.sp_defense, statsData.speed].map(v => Number(v) || 0);
+                const currentMax = Math.max(...vals);
                 if (currentMax > 160) maxStatVal = currentMax;
             }
 
             return (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
                     <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col relative overflow-hidden animate-scale-up" onClick={e => e.stopPropagation()}>
-                        
-                        <button 
-                            onClick={onClose}
-                            className="absolute top-3 right-3 p-2 bg-slate-100 rounded-full text-slate-500 transition-colors z-20 [@media(hover:hover)]:hover:bg-slate-200 [@media(hover:hover)]:hover:text-slate-800"
-                        >
-                            <IconX className="w-5 h-5" />
-                        </button>
-
+                        <button onClick={onClose} className="absolute top-3 right-3 p-2 bg-slate-100 rounded-full text-slate-500 transition-colors z-20 [@media(hover:hover)]:hover:bg-slate-200 [@media(hover:hover)]:hover:text-slate-800"><IconX className="w-5 h-5" /></button>
                         <div className="pt-6 pb-2 px-6 bg-white z-10 shrink-0 flex flex-col items-center border-b border-slate-50">
-                            {loading ? (
-                                <div className="h-6 w-32 bg-slate-200 rounded animate-pulse"></div>
-                            ) : error ? (
-                                <div className="py-4 text-center">
-                                    <p className="text-slate-400 font-medium">{error}</p>
-                                    <p className="text-xs text-slate-300 mt-1">ID: {nationalId} - {name}</p>
-                                </div>
-                            ) : (
+                            {loading ? <div className="h-6 w-32 bg-slate-200 rounded animate-pulse"></div> : error ? <div className="py-4 text-center"><p className="text-slate-400 font-medium">{error}</p><p className="text-xs text-slate-300 mt-1">ID: {nationalId} - {name}</p></div> : (
                                 <>
                                     <h2 className="text-2xl font-bold text-slate-800">{getText(data.name)}</h2>
-                                    
-                                    <div className="w-40 h-40 my-2">
-                                        <img 
-                                            src={getOfficialArtwork(nationalId)} 
-                                            alt={getText(data.name)} 
-                                            className="w-full h-full object-contain drop-shadow-md hover:scale-105 transition-transform duration-300"
-                                            onError={(e) => { e.target.src = getSpriteUrl(nationalId); }}
-                                        />
-                                    </div>
-
+                                    <div className="w-40 h-40 my-2"><img src={getOfficialArtwork(nationalId)} alt={getText(data.name)} className="w-full h-full object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" onError={(e) => { e.target.src = getSpriteUrl(nationalId); }} /></div>
                                     <div className="flex items-center justify-center gap-3 mt-1 text-sm text-slate-500">
                                         <span className="font-mono font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-600">#{String(nationalId).padStart(3, '0')}</span>
                                         {primaryForm?.genus && <span className="font-medium">{getText(primaryForm.genus)}</span>}
-                                        {primaryForm?.types && (
-                                            <div className="flex gap-1.5">
-                                                {primaryForm.types.map((t, idx) => {
-                                                    const typeName = getText(t);
-                                                    const bg = TYPE_COLORS[typeName] || '#777';
-                                                    return (
-                                                        <span key={idx} className="text-white px-2.5 py-0.5 rounded-full text-xs font-bold shadow-sm" style={{ backgroundColor: bg }}>
-                                                            {typeName}
-                                                        </span>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
+                                        {primaryForm?.types && <div className="flex gap-1.5">{primaryForm.types.map((t, idx) => <span key={idx} className="text-white px-2.5 py-0.5 rounded-full text-xs font-bold shadow-sm" style={{ backgroundColor: TYPE_COLORS[getText(t)] || '#777' }}>{getText(t)}</span>)}</div>}
                                     </div>
                                 </>
                             )}
                         </div>
-
                         <div className="overflow-y-auto flex-1 p-6 scroll-smooth bg-slate-50/50">
-                            {loading ? (
-                                <div className="space-y-4">
-                                    <div className="h-20 bg-slate-100 rounded-lg animate-pulse"></div>
-                                    <div className="h-40 bg-slate-100 rounded-lg animate-pulse"></div>
-                                </div>
-                            ) : !error && data ? (
+                            {!loading && !error && data && (
                                 <div className="space-y-6">
-                                    
-                                    {data.profile && (
-                                        <section className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">简介</h3>
-                                            <div className="text-sm text-slate-700 leading-relaxed max-h-[7.5rem] overflow-y-auto pr-1">
-                                                {getText(data.profile)}
-                                            </div>
-                                        </section>
-                                    )}
-
-                                    {statsData && (
-                                        <section className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">种族能力</h3>
-                                            <div className="grid gap-2.5 text-xs">
-                                                {[
-                                                    { key: 'hp', label: 'HP', val: statsData.hp },
-                                                    { key: 'attack', label: '攻击', val: statsData.attack },
-                                                    { key: 'defense', label: '防御', val: statsData.defense },
-                                                    { key: 'sp_attack', label: '特攻', val: statsData.sp_attack },
-                                                    { key: 'sp_defense', label: '特防', val: statsData.sp_defense },
-                                                    { key: 'speed', label: '速度', val: statsData.speed }
-                                                ].map((stat) => {
-                                                    const val = Number(stat.val) || 0;
-                                                    const percent = Math.min((val / maxStatVal) * 100, 100);
-                                                    let colorClass = '#94a3b8'; 
-                                                    if (val >= 150) colorClass = '#06b6d4'; 
-                                                    else if (val >= 100) colorClass = '#22c55e'; 
-                                                    else if (val >= 60) colorClass = '#eab308'; 
-                                                    else colorClass = '#f97316'; 
-
-                                                    return (
-                                                        <div key={stat.key} className="flex items-center gap-3">
-                                                            <div className="w-8 text-right font-medium text-slate-500">{stat.label}</div>
-                                                            <div className="w-8 text-right font-bold text-slate-700">{val}</div>
-                                                            <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                                                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: colorClass }}></div>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </section>
-                                    )}
-
-                                    <section className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                                        <div className="p-4 bg-slate-50 border-b border-slate-100">
-                                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">招式列表</h3>
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left text-xs table-valign-middle">
-                                                <thead className="bg-white text-slate-500 font-medium border-b border-slate-100">
-                                                    <tr>
-                                                        <th className="px-4 py-3 whitespace-nowrap text-center align-middle">名称</th>
-                                                        <th className="px-4 py-3 whitespace-nowrap text-center align-middle">方式</th>
-                                                        <th className="px-4 py-3 whitespace-nowrap text-center align-middle">属性</th>
-                                                        <th className="px-4 py-3 whitespace-nowrap text-center align-middle">类型</th>
-                                                        <th className="px-4 py-3 whitespace-nowrap text-center align-middle">威力</th>
-                                                        <th className="px-4 py-3 whitespace-nowrap text-center align-middle">命中</th>
-                                                        <th className="px-4 py-3 whitespace-nowrap text-center align-middle">PP</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-50 bg-white">
-                                                    {(() => {
-                                                        const movesDict = data.moves || {};
-                                                        const learnedGroups = movesDict.learned || [];
-                                                        const machineGroups = movesDict.machine || [];
-                                                        
-                                                        let allMoves = [];
-
-                                                        // 升级招式
-                                                        learnedGroups.forEach(group => {
-                                                            if (Array.isArray(group.data)) {
-                                                                allMoves = allMoves.concat(group.data.map(m => ({
-                                                                    ...m,
-                                                                    methodDisplay: `Lv.${getText(m.level_learned_at)}`,
-                                                                    sortKey: Number(m.level_learned_at) || 0
-                                                                })));
-                                                            }
-                                                        });
-
-                                                        // 机器招式
-                                                        machineGroups.forEach(group => {
-                                                            if (Array.isArray(group.data)) {
-                                                                allMoves = allMoves.concat(group.data.map(m => {
-                                                                    const machineName = getText(m.machine_used);
-                                                                    return {
-                                                                        ...m,
-                                                                        methodDisplay: machineName || `TM.${getText(m.machine)}`,
-                                                                        sortKey: 1000 + (Number(m.machine) || 0)
-                                                                    };
-                                                                }));
-                                                            }
-                                                        });
-
-                                                        allMoves.sort((a, b) => a.sortKey - b.sortKey);
-
-                                                        if (allMoves.length === 0) return <tr><td colSpan="7" className="p-6 text-center text-slate-400">暂无招式数据</td></tr>;
-
-                                                        return allMoves.map((move, idx) => {
-                                                            const typeName = getText(move.type);
-                                                            const catName = getText(move.category);
-                                                            const typeBg = TYPE_COLORS[typeName] || '#777';
-                                                            const catBg = CAT_COLORS[catName] || '#999';
-
-                                                            return (
-                                                                <tr key={idx} className="transition-colors [@media(hover:hover)]:hover:bg-slate-50">
-                                                                    <td className="px-4 py-2.5 font-bold text-slate-700 whitespace-nowrap text-center align-middle">{getText(move.name)}</td>
-                                                                    <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap font-mono text-center align-middle">{move.methodDisplay}</td>
-                                                                    <td className="px-4 py-2.5 whitespace-nowrap text-center align-middle">
-                                                                        <span className="text-white px-2 py-0.5 rounded text-[10px] font-bold" style={{ backgroundColor: typeBg }}>{typeName}</span>
-                                                                    </td>
-                                                                    <td className="px-4 py-2.5 whitespace-nowrap text-center align-middle">
-                                                                        <span className="text-white px-2 py-0.5 rounded text-[10px]" style={{ backgroundColor: catBg }}>{catName}</span>
-                                                                    </td>
-                                                                    <td className="px-4 py-2.5 text-center font-mono text-slate-600 align-middle">{getText(move.power) || '-'}</td>
-                                                                    <td className="px-4 py-2.5 text-center font-mono text-slate-600 align-middle">{getText(move.accuracy) || '-'}</td>
-                                                                    <td className="px-4 py-2.5 text-center font-mono text-slate-600 align-middle">{getText(move.pp)}</td>
-                                                                </tr>
-                                                            );
-                                                        });
-                                                    })()}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </section>
-
+                                    {data.profile && <section className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">简介</h3><div className="text-sm text-slate-700 leading-relaxed max-h-[7.5rem] overflow-y-auto pr-1">{getText(data.profile)}</div></section>}
+                                    {statsData && <section className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">种族能力</h3><div className="grid gap-2.5 text-xs">{[{ key: 'hp', label: 'HP', val: statsData.hp }, { key: 'attack', label: '攻击', val: statsData.attack }, { key: 'defense', label: '防御', val: statsData.defense }, { key: 'sp_attack', label: '特攻', val: statsData.sp_attack }, { key: 'sp_defense', label: '特防', val: statsData.sp_defense }, { key: 'speed', label: '速度', val: statsData.speed }].map((stat) => { const val = Number(stat.val) || 0; const percent = Math.min((val / maxStatVal) * 100, 100); let colorClass = '#94a3b8'; if (val >= 150) colorClass = '#06b6d4'; else if (val >= 100) colorClass = '#22c55e'; else if (val >= 60) colorClass = '#eab308'; else colorClass = '#f97316'; return (<div key={stat.key} className="flex items-center gap-3"><div className="w-8 text-right font-medium text-slate-500">{stat.label}</div><div className="w-8 text-right font-bold text-slate-700">{val}</div><div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: colorClass }}></div></div></div>) })}</div></section>}
+                                    <section className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden"><div className="p-4 bg-slate-50 border-b border-slate-100"><h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">招式列表</h3></div><div className="overflow-x-auto"><table className="w-full text-left text-xs table-valign-middle"><thead className="bg-white text-slate-500 font-medium border-b border-slate-100"><tr><th className="px-4 py-3 whitespace-nowrap text-center align-middle">名称</th><th className="px-4 py-3 whitespace-nowrap text-center align-middle">方式</th><th className="px-4 py-3 whitespace-nowrap text-center align-middle">属性</th><th className="px-4 py-3 whitespace-nowrap text-center align-middle">类型</th><th className="px-4 py-3 whitespace-nowrap text-center align-middle">威力</th><th className="px-4 py-3 whitespace-nowrap text-center align-middle">命中</th><th className="px-4 py-3 whitespace-nowrap text-center align-middle">PP</th></tr></thead><tbody className="divide-y divide-slate-50 bg-white">{(() => { const movesDict = data.moves || {}; const learnedGroups = movesDict.learned || []; const machineGroups = movesDict.machine || []; let allMoves = []; learnedGroups.forEach(group => { if (Array.isArray(group.data)) { allMoves = allMoves.concat(group.data.map(m => ({ ...m, methodDisplay: `Lv.${getText(m.level_learned_at)}`, sortKey: Number(m.level_learned_at) || 0 }))); } }); machineGroups.forEach(group => { if (Array.isArray(group.data)) { allMoves = allMoves.concat(group.data.map(m => ({ ...m, methodDisplay: getText(m.machine_used) || `TM.${getText(m.machine)}`, sortKey: 1000 + (Number(m.machine) || 0) }))); } }); allMoves.sort((a, b) => a.sortKey - b.sortKey); if (allMoves.length === 0) return <tr><td colSpan="7" className="p-6 text-center text-slate-400">暂无招式数据</td></tr>; return allMoves.map((move, idx) => { const typeName = getText(move.type); const catName = getText(move.category); const typeBg = TYPE_COLORS[typeName] || '#777'; const catBg = CAT_COLORS[catName] || '#999'; return (<tr key={idx} className="transition-colors [@media(hover:hover)]:hover:bg-slate-50"><td className="px-4 py-2.5 font-bold text-slate-700 whitespace-nowrap text-center align-middle">{getText(move.name)}</td><td className="px-4 py-2.5 text-slate-500 whitespace-nowrap font-mono text-center align-middle">{move.methodDisplay}</td><td className="px-4 py-2.5 whitespace-nowrap text-center align-middle"><span className="text-white px-2 py-0.5 rounded text-[10px] font-bold" style={{ backgroundColor: typeBg }}>{typeName}</span></td><td className="px-4 py-2.5 whitespace-nowrap text-center align-middle"><span className="text-white px-2 py-0.5 rounded text-[10px]" style={{ backgroundColor: catBg }}>{catName}</span></td><td className="px-4 py-2.5 text-center font-mono text-slate-600 align-middle">{getText(move.power) || '-'}</td><td className="px-4 py-2.5 text-center font-mono text-slate-600 align-middle">{getText(move.accuracy) || '-'}</td><td className="px-4 py-2.5 text-center font-mono text-slate-600 align-middle">{getText(move.pp)}</td></tr>); }); })()}</tbody></table></div></section>
                                 </div>
-                            ) : null}
+                            )}
                         </div>
                     </div>
                 </div>
@@ -423,28 +169,26 @@
             
             const [detailModalOpen, setDetailModalOpen] = useState(false);
             const [selectedPokemon, setSelectedPokemon] = useState(null);
-
             const [showControls, setShowControls] = useState(true);
             const lastScrollY = useRef(0);
             const fileInputRef = useRef(null);
+            
+            // 删除确认弹窗状态
+            const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, pokemonId: null, pokemonName: '' });
 
             const [caughtList, setCaughtList] = useState(() => {
                 const saved = localStorage.getItem('caught_pokemon_ids');
                 return saved ? new Set(JSON.parse(saved)) : new Set();
             });
 
-            // 获取数据
             useEffect(() => {
                 const fetchData = async () => {
                     try {
                         setLoading(true);
-                        const [resNational, resJohto] = await Promise.all([
-                            fetch(URL_NATIONAL), fetch(URL_JOHTO)
-                        ]);
+                        const [resNational, resJohto] = await Promise.all([fetch(URL_NATIONAL), fetch(URL_JOHTO)]);
                         if (!resNational.ok || !resJohto.ok) throw new Error("无法连接到数据源");
                         const dataNational = await resNational.json();
                         const dataJohto = await resJohto.json();
-
                         const map = new Map();
                         dataNational.forEach((p, idx) => {
                             if(!p) return;
@@ -453,68 +197,54 @@
                             if (name) map.set(name, Number(nid));
                         });
                         setAllPokemonMap(map);
-
                         const normalize = (list, dexType) => {
                             if (!Array.isArray(list)) return [];
-                            const filteredList = list.filter(p => {
-                                if (!p) return false;
+                            return list.filter(p => {
                                 const name = getText(p.names?.zh || p.name);
-                                if (name && typeof name === 'string' && name.includes('的样子')) return false;
-                                return true;
-                            });
-                            return filteredList.map((p, index) => {
-                                if (!p) return null;
+                                return !(name && typeof name === 'string' && name.includes('的样子'));
+                            }).map((p, index) => {
                                 let displayId = p.id || p.no || (index + 1);
                                 const name = getText(p.names?.zh || p.name) || `Pokemon ${displayId}`;
                                 let imageId = p.national_index || p.national_id;
                                 if (!imageId && dexType === 'national') imageId = displayId;
                                 if (!imageId) imageId = displayId;
                                 return { id: Number(displayId), imageId: Number(imageId), name };
-                            }).filter(item => item && item.id);
+                            });
                         };
-
-                        setPokemonData({
-                            national: normalize(dataNational, 'national'),
-                            johto: normalize(dataJohto, 'johto')
-                        });
-                    } catch (err) {
-                        console.error(err);
-                        setError("数据加载失败");
-                    } finally {
-                        setLoading(false);
-                    }
+                        setPokemonData({ national: normalize(dataNational, 'national'), johto: normalize(dataJohto, 'johto') });
+                    } catch (err) { console.error(err); setError("数据加载失败"); } finally { setLoading(false); }
                 };
                 fetchData();
             }, []);
 
-            useEffect(() => {
-                localStorage.setItem('caught_pokemon_ids', JSON.stringify([...caughtList]));
-            }, [caughtList]);
+            useEffect(() => { localStorage.setItem('caught_pokemon_ids', JSON.stringify([...caughtList])); }, [caughtList]);
 
             useEffect(() => {
                 const handleScroll = () => {
                     const currentScrollY = window.scrollY;
-                    if (currentScrollY > 60) {
-                        if (currentScrollY > lastScrollY.current) {
-                            setShowControls(false); // 下滑隐藏
-                        } else {
-                            setShowControls(true);  // 上滑显示
-                        }
-                    } else {
-                        setShowControls(true);
-                    }
+                    if (currentScrollY > 60) { setShowControls(currentScrollY <= lastScrollY.current); } else { setShowControls(true); }
                     lastScrollY.current = currentScrollY;
                 };
-
                 window.addEventListener('scroll', handleScroll, { passive: true });
                 return () => window.removeEventListener('scroll', handleScroll);
             }, []);
 
             const toggleCaught = (uniqueId) => {
                 const newSet = new Set(caughtList);
-                if (newSet.has(uniqueId)) newSet.delete(uniqueId);
-                else newSet.add(uniqueId);
+                if (newSet.has(uniqueId)) newSet.delete(uniqueId); else newSet.add(uniqueId);
                 setCaughtList(newSet);
+            };
+            
+            // 触发删除确认
+            const requestDelete = (uniqueId, name) => {
+                setConfirmDelete({ isOpen: true, pokemonId: uniqueId, pokemonName: name });
+            };
+            
+            // 执行删除
+            const confirmDeleteAction = () => {
+                if(confirmDelete.pokemonId) {
+                    toggleCaught(confirmDelete.pokemonId);
+                }
             };
             
             const openDetail = (e, pokemon) => {
@@ -526,48 +256,38 @@
             const handleExport = () => {
                 const dataStr = JSON.stringify([...caughtList]);
                 const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-                const exportFileDefaultName = `pokemon_tracker_backup_${new Date().toLocaleDateString()}.json`;
                 const linkElement = document.createElement('a');
                 linkElement.setAttribute('href', dataUri);
-                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.setAttribute('download', `pokemon_tracker_backup_${new Date().toLocaleDateString()}.json`);
                 linkElement.click();
             };
 
-            // 【修改】导入后仅提示简单成功信息
             const handleImport = (event) => {
-                const fileReader = new FileReader();
                 const file = event.target.files[0];
                 if (!file) return;
-
+                const fileReader = new FileReader();
                 fileReader.readAsText(file, "UTF-8");
                 fileReader.onload = e => {
                     try {
                         const importedData = JSON.parse(e.target.result);
                         if (Array.isArray(importedData)) {
-                            // 依然保留兼容逻辑以防万一，但不再提示给用户
                             const migratedData = importedData.map(item => {
                                 if (!isNaN(item) && !String(item).includes('-')) return String(item);
                                 if (typeof item === 'string') {
                                     if (item.startsWith('national-')) return item.replace('national-', '');
-                                    else if (item.startsWith('johto-')) {
-                                        const regionalId = parseInt(item.replace('johto-', ''), 10);
-                                        const found = pokemonData.johto.find(p => p.id === regionalId);
+                                    if (item.startsWith('johto-')) {
+                                        const regId = parseInt(item.replace('johto-', ''), 10);
+                                        const found = pokemonData.johto.find(p => p.id === regId);
                                         return found ? String(found.imageId) : null;
                                     }
                                 }
                                 return null;
                             }).filter(Boolean);
-
                             const newSet = new Set([...caughtList, ...migratedData]);
                             setCaughtList(newSet);
-                            alert(`成功导入！当前共捕获 ${newSet.size} 只。`); // 简化提示
-                        } else {
-                            alert("文件格式不正确");
-                        }
-                    } catch (error) {
-                        console.error(error);
-                        alert("无法解析文件");
-                    }
+                            alert(`成功导入！当前共捕获 ${newSet.size} 只。`);
+                        } else { alert("文件格式不正确"); }
+                    } catch (error) { console.error(error); alert("无法解析文件"); }
                     event.target.value = null;
                 };
             };
@@ -579,12 +299,8 @@
                 let list = currentDex === 'national' ? pokemonData.national : pokemonData.johto;
                 if (viewMode === 'caught') list = list.filter(p => caughtList.has(String(p.imageId)));
                 if (searchQuery) {
-                    const lowerQuery = searchQuery.toLowerCase().trim();
-                    list = list.filter(p => {
-                        const idStr = String(p.id);
-                        const paddedId = formatId(p.id);
-                        return p.name.includes(lowerQuery) || idStr.includes(lowerQuery) || paddedId.includes(lowerQuery);
-                    });
+                    const q = searchQuery.toLowerCase().trim();
+                    list = list.filter(p => String(p.id).includes(q) || formatId(p.id).includes(q) || p.name.includes(q));
                 }
                 return list;
             }, [currentDex, viewMode, searchQuery, pokemonData, caughtList]);
@@ -598,12 +314,12 @@
             }, [currentDex, pokemonData, caughtList]);
 
             if (error) return <div className="flex flex-col items-center justify-center min-h-screen text-red-500"><p className="text-xl font-bold mb-2">出错了</p><p>{error}</p><button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-100 rounded-lg hover:bg-red-200 transition">重试</button></div>;
-
+            
             const isCaughtMode = viewMode === 'caught';
 
             return (
                 <div className="min-h-screen flex flex-col">
-                    {/* Detail Modal */}
+                    <ConfirmModal isOpen={confirmDelete.isOpen} message={`确定要移除 ${confirmDelete.pokemonName} 吗？`} onClose={() => setConfirmDelete({...confirmDelete, isOpen: false})} onConfirm={confirmDeleteAction} />
                     {detailModalOpen && selectedPokemon && (
                         <DetailModal 
                             pokemonId={selectedPokemon.id} 
@@ -614,182 +330,57 @@
                         />
                     )}
 
-                    {/* Fixed Unified Header */}
                     <div className={`fixed top-0 left-0 w-full z-50 bg-slate-100/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-transform duration-300 ${showControls ? 'translate-y-0' : '-translate-y-full'}`}>
                         <div className="pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 px-4 max-w-7xl mx-auto flex flex-col gap-2">
-                            
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="bg-red-500 p-1.5 rounded-full text-white shadow-sm">
-                                        <IconPokeball className="w-5 h-5" />
-                                    </div>
-                                    <h1 className="text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">宝可梦图鉴</h1>
-                                </div>
-
+                                <div className="flex items-center gap-2"><div className="bg-red-500 p-1.5 rounded-full text-white shadow-sm"><IconPokeball className="w-5 h-5" /></div><h1 className="text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">宝可梦图鉴</h1></div>
                                 <div className="flex items-center gap-4">
-                                    <div className="flex flex-col items-end min-w-[80px]">
-                                        <div className="text-xs font-bold text-slate-500 mb-1">
-                                            <span className="text-red-600 text-sm">{loading ? "-" : stats.caught}</span> / {loading ? "-" : stats.total}
-                                        </div>
-                                        <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                            <div className="h-full bg-red-500 transition-all duration-500 ease-out" style={{width: `${stats.percent}%`}}></div>
-                                        </div>
-                                    </div>
-
-                                    {viewMode === 'caught' && (
-                                        <div className="flex gap-2 pl-3 border-l border-slate-300">
-                                            <button onClick={handleExport} className="px-2 py-1 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-600 hover:text-red-600 hover:border-red-300 hover:bg-slate-50 transition-all flex items-center gap-1 shadow-sm">
-                                                <IconDownload className="w-3.5 h-3.5" />
-                                                <span className="hidden sm:inline">导出</span>
-                                            </button>
-                                            <button onClick={() => fileInputRef.current.click()} className="px-2 py-1 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-600 hover:text-red-600 hover:border-red-300 hover:bg-slate-50 transition-all flex items-center gap-1 shadow-sm">
-                                                <IconUpload className="w-3.5 h-3.5" />
-                                                <span className="hidden sm:inline">导入</span>
-                                            </button>
-                                            <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
-                                        </div>
-                                    )}
+                                    <div className="flex flex-col items-end min-w-[80px]"><div className="text-xs font-bold text-slate-500 mb-1"><span className="text-red-600 text-sm">{loading ? "-" : stats.caught}</span> / {loading ? "-" : stats.total}</div><div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-red-500 transition-all duration-500 ease-out" style={{width: `${stats.percent}%`}}></div></div></div>
+                                    {isCaughtMode && (<div className="flex gap-2 pl-3 border-l border-slate-300"><button onClick={handleExport} className="px-2 py-1 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-600 transition-all flex items-center gap-1 shadow-sm [@media(hover:hover)]:hover:text-red-600 [@media(hover:hover)]:hover:border-red-300 [@media(hover:hover)]:hover:bg-slate-50"><IconExportArrow className="w-3.5 h-3.5" /><span className="hidden sm:inline">导出</span></button><button onClick={() => fileInputRef.current.click()} className="px-2 py-1 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-600 transition-all flex items-center gap-1 shadow-sm [@media(hover:hover)]:hover:text-red-600 [@media(hover:hover)]:hover:border-red-300 [@media(hover:hover)]:hover:bg-slate-50"><IconImportArrow className="w-3.5 h-3.5" /><span className="hidden sm:inline">导入</span></button><input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" /></div>)}
                                 </div>
                             </div>
-
-                            <div className="relative w-full">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <IconSearch className="h-4 w-4 text-slate-400" />
-                                </div>
-                                <input
-                                    type="text"
-                                    className="caret-red-500 block w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 placeholder:text-slate-400"
-                                    placeholder="搜索名称 (如: 妙蛙) 或编号 (如: 001)..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-
+                            <div className="relative w-full"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><IconSearch className="h-4 w-4 text-slate-400" /></div><input type="text" className="caret-red-500 block w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 placeholder:text-slate-400" placeholder="搜索名称 (如: 妙蛙) 或编号 (如: 001)..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
                             <div className="flex flex-row justify-between items-center">
-                                <div className="flex p-1 bg-slate-200 rounded-lg shrink-0">
-                                    <button onClick={() => setCurrentDex('national')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${currentDex === 'national' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>全国</button>
-                                    <button onClick={() => setCurrentDex('johto')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${currentDex === 'johto' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>城都</button>
-                                </div>
-
-                                <div className="flex gap-2 shrink-0">
-                                    <button
-                                        onClick={() => setViewMode('all')}
-                                        className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${
-                                            viewMode === 'all'
-                                                ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                                                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        全部
-                                    </button>
-                                    <button
-                                        onClick={() => setViewMode('caught')}
-                                        className={`px-3 py-1.5 rounded-full text-xs border transition-colors flex items-center gap-1 whitespace-nowrap ${
-                                            viewMode === 'caught'
-                                                ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                                                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        <IconCheck className="w-3 h-3" />
-                                        已捕获
-                                    </button>
-                                </div>
+                                <div className="flex p-1 bg-slate-200 rounded-lg shrink-0"><button onClick={() => setCurrentDex('national')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${currentDex === 'national' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 [@media(hover:hover)]:hover:text-slate-700'}`}>全国</button><button onClick={() => setCurrentDex('johto')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${currentDex === 'johto' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 [@media(hover:hover)]:hover:text-slate-700'}`}>城都</button></div>
+                                <div className="flex gap-2 shrink-0"><button onClick={() => setViewMode('all')} className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${viewMode === 'all' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white text-slate-600 border-slate-300 [@media(hover:hover)]:hover:bg-slate-50'}`}>全部</button><button onClick={() => setViewMode('caught')} className={`px-3 py-1.5 rounded-full text-xs border transition-colors flex items-center gap-1 whitespace-nowrap ${viewMode === 'caught' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white text-slate-600 border-slate-300 [@media(hover:hover)]:hover:bg-slate-50'}`}><IconCheck className="w-3 h-3" />已捕获</button></div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Content Spacer & Area */}
                     <div className="pt-[calc(9.25rem+env(safe-area-inset-top))] max-w-7xl mx-auto px-2 pb-2 w-full flex-grow">
-                        {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20">
-                                <IconPokeball className="w-10 h-10 text-slate-300 pokeball-spin mb-4" />
-                                <p className="text-slate-500 text-sm animate-pulse">正在加载图鉴数据...</p>
-                            </div>
-                        ) : (
+                        {loading ? (<div className="flex flex-col items-center justify-center py-20"><IconPokeball className="w-10 h-10 text-slate-300 pokeball-spin mb-4" /><p className="text-slate-500 text-sm animate-pulse">正在加载图鉴数据...</p></div>) : (
                             <>
                                 {activeList.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-24 text-center">
-                                        <div className="bg-slate-200 p-4 rounded-full mb-4">
-                                            {searchQuery ? <IconSearch className="w-8 h-8 text-slate-400" /> : (viewMode === 'caught' ? <IconPokeball className="w-8 h-8 text-slate-400" /> : <div className="w-8 h-8 text-slate-400 font-bold text-xl">?</div>)}
-                                        </div>
-                                        <p className="text-slate-500 font-medium">
-                                            {searchQuery ? "没有找到符合条件的宝可梦" : (viewMode === 'caught' ? "还没有捕获记录" : "列表为空")}
-                                        </p>
-                                        {viewMode === 'caught' && !searchQuery && <p className="text-slate-400 text-xs mt-1">点击卡片即可标记捕获</p>}
-                                    </div>
+                                    <div className="flex flex-col items-center justify-center py-24 text-center"><div className="bg-slate-200 p-4 rounded-full mb-4">{searchQuery ? <IconSearch className="w-8 h-8 text-slate-400" /> : (viewMode === 'caught' ? <IconPokeball className="w-8 h-8 text-slate-400" /> : <div className="w-8 h-8 text-slate-400 font-bold text-xl">?</div>)}</div><p className="text-slate-500 font-medium">{searchQuery ? "没有找到符合条件的宝可梦" : (viewMode === 'caught' ? "还没有捕获记录" : "列表为空")}</p>{viewMode === 'caught' && !searchQuery && <p className="text-slate-400 text-xs mt-1">点击卡片即可标记捕获</p>}</div>
                                 ) : (
                                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
                                         {activeList.map((pokemon) => {
                                             const uniqueKey = `${currentDex}-${pokemon.id}`;
                                             const caughtKey = String(pokemon.imageId); 
                                             const isCaught = caughtList.has(caughtKey);
-                                            
-                                            // 【修改】核心交互逻辑：
-                                            // 1. 如果是 isCaughtMode (已捕获模式)，卡片显示为普通白色样式，不显示红色选中态。
-                                            // 2. 如果是 viewMode 'all'，则根据 isCaught 显示选中态。
+                                            // isCaughtMode下，卡片只显示普通样式（但图片全彩），不显示选中框
                                             const showAsCaught = isCaught && !isCaughtMode;
 
                                             return (
                                                 <div 
                                                     key={uniqueKey}
-                                                    // 【修改】已捕获模式下，点击卡片本身不触发 toggle (防止误触)，
-                                                    // 只有点垃圾桶才删除。普通模式下点击切换。
+                                                    // 已捕获模式下点击卡片不触发选择，防止误删，只有点击垃圾桶才删除
                                                     onClick={() => !isCaughtMode && toggleCaught(caughtKey)}
-                                                    className={`
-                                                        relative group cursor-pointer rounded-xl p-2 transition-all duration-100 flex flex-col items-center justify-between bg-white box-border select-none
-                                                        ${showAsCaught 
-                                                            ? 'border-2 border-red-500 bg-red-50' 
-                                                            : 'border border-slate-200 [@media(hover:hover)]:hover:border-red-300 [@media(hover:hover)]:hover:shadow-sm'
-                                                        }
-                                                    `}
+                                                    className={`relative group cursor-pointer rounded-xl p-2 transition-all duration-100 flex flex-col items-center justify-between bg-white box-border select-none ${showAsCaught ? 'border-2 border-red-500 bg-red-50' : 'border border-slate-200 [@media(hover:hover)]:hover:border-red-300 [@media(hover:hover)]:hover:shadow-sm'}`}
                                                 >
-                                                    {/* 【修改】标记渲染：
-                                                        - isCaughtMode: 显示垃圾桶图标 (点击删除)
-                                                        - 普通模式 & 已捕获: 显示红色对勾
-                                                    */}
+                                                    {/* 已捕获模式：显示垃圾桶；普通模式+已捕获：显示对勾 */}
                                                     {isCaughtMode ? (
-                                                        <div 
-                                                            onClick={(e) => { e.stopPropagation(); toggleCaught(caughtKey); }}
-                                                            className="absolute top-1.5 right-1.5 p-1 text-slate-300 rounded-full bg-white border border-slate-100 shadow-sm z-10 hover:text-red-500 hover:border-red-200 transition-colors"
-                                                        >
-                                                            <IconTrash className="w-3.5 h-3.5" />
-                                                        </div>
+                                                        <div onClick={(e) => { e.stopPropagation(); requestDelete(caughtKey, pokemon.name); }} className="absolute top-1.5 right-1.5 p-1 text-slate-400 rounded-full bg-white border border-slate-200 shadow-sm z-10 hover:text-red-500 hover:border-red-300 transition-colors"><IconTrash className="w-3.5 h-3.5" /></div>
                                                     ) : (
                                                         isCaught && <div className="absolute top-1.5 right-1.5 text-red-500 bg-white rounded-full p-0.5 shadow-sm z-10"><IconCheck className="w-4 h-4" /></div>
                                                     )}
                                                     
                                                     <div className="w-full aspect-square relative flex items-center justify-center mb-1 p-2">
-                                                        <img 
-                                                            src={getImageUrl(pokemon.imageId)} 
-                                                            alt={pokemon.name}
-                                                            loading="lazy"
-                                                            className={`
-                                                                w-full h-full object-contain transition-all duration-300 
-                                                                ${showAsCaught 
-                                                                    ? 'filter-none scale-110 drop-shadow-sm' 
-                                                                    : 'grayscale opacity-60 scale-100 [@media(hover:hover)]:group-hover:grayscale-0 [@media(hover:hover)]:group-hover:opacity-100'
-                                                                }
-                                                                /* 已捕获模式下强制全彩，因为它们确实已经被捕获了 */
-                                                                ${isCaughtMode ? '!filter-none !opacity-100 !grayscale-0' : ''}
-                                                            `}
-                                                            onError={(e) => { e.target.onerror = null; e.target.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'; e.target.className="w-1/2 h-1/2 opacity-20" }}
-                                                        />
+                                                        <img src={getImageUrl(pokemon.imageId)} alt={pokemon.name} loading="lazy" className={`w-full h-full object-contain transition-all duration-300 ${showAsCaught ? 'filter-none scale-110 drop-shadow-sm' : 'grayscale opacity-60 scale-100 [@media(hover:hover)]:group-hover:grayscale-0 [@media(hover:hover)]:group-hover:opacity-100'} ${isCaughtMode ? '!filter-none !opacity-100 !grayscale-0' : ''}`} onError={(e) => { e.target.onerror = null; e.target.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'; e.target.className="w-1/2 h-1/2 opacity-20" }} />
                                                     </div>
-                                                    
                                                     <div className="w-full flex items-end justify-between min-w-0">
-                                                        <div className="text-left min-w-0 flex-1 pr-1">
-                                                            <div className={`text-xs font-bold font-mono leading-none mb-0.5 ${showAsCaught ? 'text-slate-800' : 'text-slate-400'}`}>
-                                                                {formatId(pokemon.id)}
-                                                            </div>
-                                                            <h3 className={`text-xs font-bold truncate leading-tight w-full ${showAsCaught ? 'text-red-700' : 'text-slate-700'}`}>{pokemon.name}</h3>
-                                                        </div>
-
-                                                        <div 
-                                                            onClick={(e) => openDetail(e, pokemon)}
-                                                            className="shrink-0 p-1 -mb-1 -mr-1 text-black/20 rounded-full transition-colors cursor-pointer [@media(hover:hover)]:hover:text-black/60"
-                                                        >
-                                                            <IconInfo className="w-4 h-4" />
-                                                        </div>
+                                                        <div className="text-left min-w-0 flex-1 pr-1"><div className={`text-xs font-bold font-mono leading-none mb-0.5 ${showAsCaught ? 'text-slate-800' : 'text-slate-400'}`}>{formatId(pokemon.id)}</div><h3 className={`text-xs font-bold truncate leading-tight w-full ${showAsCaught ? 'text-red-700' : 'text-slate-700'}`}>{pokemon.name}</h3></div>
+                                                        <div onClick={(e) => openDetail(e, pokemon)} className="shrink-0 p-1 -mb-1 -mr-1 text-black/20 rounded-full transition-colors cursor-pointer [@media(hover:hover)]:hover:text-black/60"><IconInfo className="w-4 h-4" /></div>
                                                     </div>
                                                 </div>
                                             );
@@ -802,7 +393,6 @@
                 </div>
             );
         };
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>

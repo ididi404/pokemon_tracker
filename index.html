@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>宝可梦图鉴追踪器</title>
     
     <!-- Tailwind CSS -->
@@ -19,13 +19,14 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* 【4】强制隐藏网页滚动条，防止切换页面时候页面宽度跳动 */
+        /* 强制隐藏网页滚动条 */
         ::-webkit-scrollbar {
             display: none;
         }
         html {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .pokeball-spin {
@@ -35,14 +36,20 @@
             100% { transform: rotate(360deg); }
         }
         
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        @media (hover: hover) {
+            .card-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
         }
 
-        /* 【1】系统默认字体优化 */
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        }
+
+        /* 搜索框光标颜色 */
+        .caret-red-500 {
+            caret-color: #ef4444;
         }
     </style>
 </head>
@@ -50,104 +57,78 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
         // 图标组件
         const IconPokeball = ({ className }) => (
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className={className}
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M22 12h-6.8a3.2 3.2 0 0 0-6.4 0H2"></path>
                 <circle cx="12" cy="12" r="2.5"></circle>
             </svg>
         );
-
         const IconCheck = ({ className }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>
+        );
+        const IconSearch = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        );
+        const IconDownload = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        );
+        const IconUpload = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
         );
 
-        // 数据源 URL
         const URL_NATIONAL = "https://raw.githubusercontent.com/42arch/pokemon-dataset-zh/main/data/pokedex/pokedex_national.json";
         const URL_JOHTO = "https://raw.githubusercontent.com/42arch/pokemon-dataset-zh/main/data/pokedex/pokedex_johto.json";
 
         const App = () => {
-            // 状态管理
             const [currentDex, setCurrentDex] = useState('national'); 
             const [viewMode, setViewMode] = useState('all'); 
+            const [searchQuery, setSearchQuery] = useState('');
             const [pokemonData, setPokemonData] = useState({ national: [], johto: [] });
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             
-            // 已捕获列表，从 localStorage 初始化
+            // 滚动状态
+            const [showControls, setShowControls] = useState(true);
+            const lastScrollY = useRef(0);
+            
+            const fileInputRef = useRef(null);
+
             const [caughtList, setCaughtList] = useState(() => {
                 const saved = localStorage.getItem('caught_pokemon_ids');
                 return saved ? new Set(JSON.parse(saved)) : new Set();
             });
 
-            // 获取数据
             useEffect(() => {
                 const fetchData = async () => {
                     try {
                         setLoading(true);
                         const [resNational, resJohto] = await Promise.all([
-                            fetch(URL_NATIONAL),
-                            fetch(URL_JOHTO)
+                            fetch(URL_NATIONAL), fetch(URL_JOHTO)
                         ]);
-
                         if (!resNational.ok || !resJohto.ok) throw new Error("无法连接到数据源");
-
                         const dataNational = await resNational.json();
                         const dataJohto = await resJohto.json();
 
                         const normalize = (list, dexType) => {
                             if (!Array.isArray(list)) return [];
-                            
-                            // 【修复】先过滤掉所有特殊形态（如“阿罗拉的样子”），防止索引错位
-                            // 如果不滤除，它们会占用 index，导致后续正统宝可梦的 ID (index + 1) 偏大，从而图片错位
                             const filteredList = list.filter(p => {
                                 if (!p) return false;
                                 const name = p.names?.zh || (typeof p.name === 'object' ? p.name.zh : p.name);
-                                // 过滤掉包含 "的样子" 的条目
-                                if (name && typeof name === 'string' && name.includes('的样子')) {
-                                    return false;
-                                }
+                                if (name && typeof name === 'string' && name.includes('的样子')) return false;
                                 return true;
                             });
-
                             return filteredList.map((p, index) => {
                                 if (!p) return null;
-                                
-                                let displayId = p.id || p.no;
-                                if (!displayId) {
-                                    // 过滤后，index + 1 应该能完美对齐全国图鉴编号
-                                    displayId = index + 1;
-                                }
-
+                                let displayId = p.id || p.no || (index + 1);
                                 const name = p.names?.zh || (typeof p.name === 'object' ? p.name.zh : p.name) || `Pokemon ${displayId}`;
-
                                 let imageId = p.national_index || p.national_id;
-
-                                if (!imageId && dexType === 'national') {
-                                    imageId = displayId;
-                                }
-                                
-                                if (!imageId) {
-                                    imageId = displayId;
-                                }
-
-                                return { 
-                                    id: Number(displayId),     
-                                    imageId: Number(imageId),  
-                                    name
-                                };
+                                if (!imageId && dexType === 'national') imageId = displayId;
+                                if (!imageId) imageId = displayId;
+                                return { id: Number(displayId), imageId: Number(imageId), name };
                             }).filter(item => item && item.id);
                         };
 
@@ -156,156 +137,203 @@
                             johto: normalize(dataJohto, 'johto')
                         });
                     } catch (err) {
-                        console.error("Data Load Error:", err);
-                        setError("数据加载失败，请检查网络连接。");
+                        console.error(err);
+                        setError("数据加载失败");
                     } finally {
                         setLoading(false);
                     }
                 };
-
                 fetchData();
             }, []);
 
-            // 持久化捕获状态
             useEffect(() => {
                 localStorage.setItem('caught_pokemon_ids', JSON.stringify([...caughtList]));
             }, [caughtList]);
 
-            // 切换捕获状态
+            useEffect(() => {
+                const handleScroll = () => {
+                    const currentScrollY = window.scrollY;
+                    if (currentScrollY > 60) {
+                        if (currentScrollY > lastScrollY.current) {
+                            setShowControls(false); // 下滑隐藏
+                        } else {
+                            setShowControls(true);  // 上滑显示
+                        }
+                    } else {
+                        setShowControls(true);
+                    }
+                    lastScrollY.current = currentScrollY;
+                };
+
+                window.addEventListener('scroll', handleScroll, { passive: true });
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
             const toggleCaught = (uniqueId) => {
                 const newSet = new Set(caughtList);
-                if (newSet.has(uniqueId)) {
-                    newSet.delete(uniqueId);
-                } else {
-                    newSet.add(uniqueId);
-                }
+                if (newSet.has(uniqueId)) newSet.delete(uniqueId);
+                else newSet.add(uniqueId);
                 setCaughtList(newSet);
             };
 
+            const handleExport = () => {
+                const dataStr = JSON.stringify([...caughtList]);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                const exportFileDefaultName = `pokemon_tracker_backup_${new Date().toLocaleDateString()}.json`;
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            };
+
+            const handleImport = (event) => {
+                const fileReader = new FileReader();
+                const file = event.target.files[0];
+                if (!file) return;
+
+                fileReader.readAsText(file, "UTF-8");
+                fileReader.onload = e => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (Array.isArray(importedData)) {
+                            const newSet = new Set([...caughtList, ...importedData]);
+                            setCaughtList(newSet);
+                            alert(`成功导入记录！当前共捕获 ${newSet.size} 只。`);
+                        } else {
+                            alert("文件格式不正确");
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        alert("无法解析文件");
+                    }
+                    event.target.value = null;
+                };
+            };
+
+            const formatId = (id) => String(id).padStart(3, '0');
+            const getImageUrl = (id) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+
             const activeList = useMemo(() => {
                 let list = currentDex === 'national' ? pokemonData.national : pokemonData.johto;
-                if (viewMode === 'caught') {
-                    list = list.filter(p => caughtList.has(`${currentDex}-${p.id}`));
+                if (viewMode === 'caught') list = list.filter(p => caughtList.has(`${currentDex}-${p.id}`));
+                if (searchQuery) {
+                    const lowerQuery = searchQuery.toLowerCase().trim();
+                    list = list.filter(p => {
+                        const idStr = String(p.id);
+                        const paddedId = formatId(p.id);
+                        return p.name.includes(lowerQuery) || idStr.includes(lowerQuery) || paddedId.includes(lowerQuery);
+                    });
                 }
                 return list;
-            }, [currentDex, viewMode, pokemonData, caughtList]);
+            }, [currentDex, viewMode, searchQuery, pokemonData, caughtList]);
 
             const stats = useMemo(() => {
                 const currentTotalList = currentDex === 'national' ? pokemonData.national : pokemonData.johto;
                 const total = currentTotalList.length;
                 const caughtCount = currentTotalList.filter(p => caughtList.has(`${currentDex}-${p.id}`)).length;
-                return { total, caught: caughtCount };
+                const percent = total > 0 ? (caughtCount / total) * 100 : 0;
+                return { total, caught: caughtCount, percent };
             }, [currentDex, pokemonData, caughtList]);
 
-            const formatId = (id) => {
-                return String(id).padStart(3, '0');
-            };
-
-            const getImageUrl = (id) => {
-                return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-            };
-
-            if (error) {
-                return (
-                    <div className="flex flex-col items-center justify-center min-h-screen text-red-500">
-                        <p className="text-xl font-bold mb-2">出错了</p>
-                        <p>{error}</p>
-                        <button 
-                            onClick={() => window.location.reload()}
-                            className="mt-4 px-4 py-2 bg-red-100 rounded-lg hover:bg-red-200 transition"
-                        >
-                            重试
-                        </button>
-                    </div>
-                );
-            }
+            if (error) return <div className="flex flex-col items-center justify-center min-h-screen text-red-500"><p className="text-xl font-bold mb-2">出错了</p><p>{error}</p><button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-100 rounded-lg hover:bg-red-200 transition">重试</button></div>;
 
             return (
                 <div className="min-h-screen flex flex-col">
-                    {/* Header Area - 非吸顶部分 */}
-                    {/* 【2】和【3】顶部左右衔接优化: 去掉最外层的 max-w 限制，改用内部容器居中 */}
-                    <div className="bg-slate-100 w-full pt-4 pb-2">
-                         <div className="max-w-7xl mx-auto px-4 flex flex-row items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
-                                <div className="bg-red-500 p-2 rounded-full text-white shadow-md">
-                                    <IconPokeball className="w-6 h-6" />
-                                </div>
-                                <h1 className="text-xl font-bold text-slate-800 tracking-tight">宝可梦追踪</h1>
-                            </div>
-
-                            <div className="flex items-center bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200 text-sm whitespace-nowrap">
-                                <span className="font-medium text-slate-500 mr-2">进度:</span>
-                                <span className="font-bold text-red-600">
-                                    {loading ? "..." : `${stats.caught} / ${stats.total}`}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Controls - 吸顶部分 */}
-                    {/* 【2】左右通栏无缝衔接: 外部 div 负责背景和吸顶，内部 div 负责内容居中 */}
-                    <div className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-sm border-b border-slate-200 shadow-sm w-full">
-                        <div className="max-w-7xl mx-auto px-4 py-2">
-                            {/* 【3】防换行优化: 强制 flex-row，允许 items-center 自动处理高度 */}
-                            <div className="flex flex-row justify-between items-center gap-2">
-                                
-                                {/* Dex Switcher */}
-                                <div className="flex p-1 bg-slate-200 rounded-lg shrink-0">
-                                    <button
-                                        onClick={() => setCurrentDex('national')}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${
-                                            currentDex === 'national' 
-                                                ? 'bg-white text-slate-900 shadow-sm' 
-                                                : 'text-slate-500 hover:text-slate-700'
-                                        }`}
-                                    >
-                                        全国
-                                    </button>
-                                    <button
-                                        onClick={() => setCurrentDex('johto')}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${
-                                            currentDex === 'johto' 
-                                                ? 'bg-white text-slate-900 shadow-sm' 
-                                                : 'text-slate-500 hover:text-slate-700'
-                                        }`}
-                                    >
-                                        城都
-                                    </button>
-                                </div>
-
-                                {/* View Filter */}
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <div className="flex gap-1">
-                                        {/* 【5】选中颜色统一: 全部 -> bg-red-600 */}
-                                        <button
-                                            onClick={() => setViewMode('all')}
-                                            className={`px-3 py-1 rounded-full text-xs border transition-colors whitespace-nowrap ${
-                                                viewMode === 'all'
-                                                    ? 'bg-red-600 text-white border-red-600'
-                                                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                                            }`}
-                                        >
-                                            全部
-                                        </button>
-                                        <button
-                                            onClick={() => setViewMode('caught')}
-                                            className={`px-3 py-1 rounded-full text-xs border transition-colors flex items-center gap-1 whitespace-nowrap ${
-                                                viewMode === 'caught'
-                                                    ? 'bg-red-600 text-white border-red-600'
-                                                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                                            }`}
-                                        >
-                                            <IconCheck className="w-3 h-3" />
-                                            已捕获
-                                        </button>
+                    
+                    {/* Fixed Unified Header */}
+                    <div className={`fixed top-0 left-0 w-full z-50 bg-slate-100/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-transform duration-300 ${showControls ? 'translate-y-0' : '-translate-y-full'}`}>
+                        <div className="pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 px-4 max-w-7xl mx-auto flex flex-col gap-2">
+                            
+                            {/* Row 1: Logo | Progress | Buttons */}
+                            <div className="flex items-center justify-between">
+                                {/* Logo */}
+                                <div className="flex items-center gap-2">
+                                    <div className="bg-red-500 p-1.5 rounded-full text-white shadow-sm">
+                                        <IconPokeball className="w-5 h-5" />
                                     </div>
+                                    <h1 className="text-lg font-bold text-slate-800 tracking-tight whitespace-nowrap">宝可梦追踪</h1>
+                                </div>
+
+                                {/* 右侧区域：进度 + 导入导出 */}
+                                <div className="flex items-center gap-4">
+                                    {/* 进度条 */}
+                                    <div className="flex flex-col items-end min-w-[80px]">
+                                        <div className="text-xs font-bold text-slate-500 mb-1">
+                                            <span className="text-red-600 text-sm">{loading ? "-" : stats.caught}</span> / {loading ? "-" : stats.total}
+                                        </div>
+                                        <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                            <div className="h-full bg-red-500 transition-all duration-500 ease-out" style={{width: `${stats.percent}%`}}></div>
+                                        </div>
+                                    </div>
+
+                                    {/* 导入导出按钮 */}
+                                    {viewMode === 'caught' && (
+                                        <div className="flex gap-2 pl-3 border-l border-slate-300">
+                                            <button onClick={handleExport} className="px-2 py-1 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-600 hover:text-red-600 hover:border-red-300 hover:bg-slate-50 transition-all flex items-center gap-1 shadow-sm">
+                                                <IconDownload className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">导出</span>
+                                            </button>
+                                            <button onClick={() => fileInputRef.current.click()} className="px-2 py-1 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-600 hover:text-red-600 hover:border-red-300 hover:bg-slate-50 transition-all flex items-center gap-1 shadow-sm">
+                                                <IconUpload className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">导入</span>
+                                            </button>
+                                            <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Row 2: Search Box */}
+                            <div className="relative w-full">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <IconSearch className="h-4 w-4 text-slate-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    className="caret-red-500 block w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm shadow-sm transition-all focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 placeholder:text-slate-400"
+                                    placeholder="搜索名称 (如: 妙蛙) 或编号 (如: 001)..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Row 3: Controls */}
+                            <div className="flex flex-row justify-between items-center">
+                                <div className="flex p-1 bg-slate-200 rounded-lg shrink-0">
+                                    <button onClick={() => setCurrentDex('national')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${currentDex === 'national' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>全国</button>
+                                    <button onClick={() => setCurrentDex('johto')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${currentDex === 'johto' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>城都</button>
+                                </div>
+
+                                <div className="flex gap-2 shrink-0">
+                                    <button
+                                        onClick={() => setViewMode('all')}
+                                        className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${
+                                            viewMode === 'all'
+                                                ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                                                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        全部
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('caught')}
+                                        className={`px-3 py-1.5 rounded-full text-xs border transition-colors flex items-center gap-1 whitespace-nowrap ${
+                                            viewMode === 'caught'
+                                                ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                                                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <IconCheck className="w-3 h-3" />
+                                        已捕获
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Content Area */}
-                    <div className="max-w-7xl mx-auto px-2 py-4 w-full flex-grow">
+                    {/* Content Spacer & Area */}
+                    {/* 【修正】增加 0.25rem 顶部间距: 9rem -> 9.25rem */}
+                    <div className="pt-[calc(9.25rem+env(safe-area-inset-top))] max-w-7xl mx-auto px-2 pb-2 w-full flex-grow">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-20">
                                 <IconPokeball className="w-10 h-10 text-slate-300 pokeball-spin mb-4" />
@@ -314,75 +342,42 @@
                         ) : (
                             <>
                                 {activeList.length === 0 ? (
-                                    /* 【6】空状态优化: 移除背景和边框，只显示简约内容 */
                                     <div className="flex flex-col items-center justify-center py-24 text-center">
                                         <div className="bg-slate-200 p-4 rounded-full mb-4">
-                                            {viewMode === 'caught' 
-                                                ? <IconPokeball className="w-8 h-8 text-slate-400" />
-                                                : <div className="w-8 h-8 text-slate-400 font-bold text-xl">?</div>
-                                            }
+                                            {searchQuery ? <IconSearch className="w-8 h-8 text-slate-400" /> : (viewMode === 'caught' ? <IconPokeball className="w-8 h-8 text-slate-400" /> : <div className="w-8 h-8 text-slate-400 font-bold text-xl">?</div>)}
                                         </div>
                                         <p className="text-slate-500 font-medium">
-                                            {viewMode === 'caught' ? "还没有捕获记录" : "列表为空"}
+                                            {searchQuery ? "没有找到符合条件的宝可梦" : (viewMode === 'caught' ? "还没有捕获记录" : "列表为空")}
                                         </p>
-                                        {viewMode === 'caught' && (
-                                            <p className="text-slate-400 text-xs mt-1">
-                                                点击卡片即可标记捕获
-                                            </p>
-                                        )}
+                                        {viewMode === 'caught' && !searchQuery && <p className="text-slate-400 text-xs mt-1">点击卡片即可标记捕获</p>}
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
                                         {activeList.map((pokemon) => {
                                             const uniqueId = `${currentDex}-${pokemon.id}`;
                                             const isCaught = caughtList.has(uniqueId);
-                                            
                                             return (
                                                 <div 
                                                     key={uniqueId}
                                                     onClick={() => toggleCaught(uniqueId)}
-                                                    /* 【2】圆角加大: rounded-xl
-                                                       【4】选中样式: 无阴影(shadow-none), 加粗边框(border-2 border-red-500)
-                                                    */
                                                     className={`
-                                                        relative group cursor-pointer rounded-xl p-2 transition-all duration-100 flex flex-col items-center justify-between bg-white box-border
-                                                        ${isCaught 
-                                                            ? 'border-2 border-red-500 bg-red-50' 
-                                                            : 'border border-slate-200 hover:border-red-300 hover:shadow-sm'
-                                                        }
+                                                        relative group cursor-pointer rounded-xl p-2 transition-all duration-100 flex flex-col items-center justify-between bg-white box-border select-none
+                                                        ${isCaught ? 'border-2 border-red-500 bg-red-50' : 'border border-slate-200 [@media(hover:hover)]:hover:border-red-300 [@media(hover:hover)]:hover:shadow-sm'}
                                                     `}
                                                 >
-                                                    {/* 捕获标记 */}
-                                                    {isCaught && (
-                                                        <div className="absolute top-1 right-1 text-red-500 bg-white rounded-full p-0.5 shadow-sm z-10">
-                                                            <IconCheck className="w-3 h-3" />
-                                                        </div>
-                                                    )}
-
-                                                    {/* 图片容器 【2】图片稍缩小 p-2 */}
+                                                    {isCaught && <div className="absolute top-1.5 right-1.5 text-red-500 bg-white rounded-full p-0.5 shadow-sm z-10"><IconCheck className="w-4 h-4" /></div>}
                                                     <div className="w-full aspect-square relative flex items-center justify-center mb-1 p-2">
                                                         <img 
                                                             src={getImageUrl(pokemon.imageId)} 
                                                             alt={pokemon.name}
                                                             loading="lazy"
-                                                            className={`w-full h-full object-contain transition-all duration-300 ${isCaught ? 'filter-none' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100'}`}
-                                                            onError={(e) => {
-                                                                e.target.onerror = null; 
-                                                                e.target.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
-                                                                e.target.className="w-1/2 h-1/2 opacity-20"
-                                                            }}
+                                                            className={`w-full h-full object-contain transition-all duration-300 ${isCaught ? 'filter-none scale-110 drop-shadow-sm' : 'grayscale opacity-60 scale-100 [@media(hover:hover)]:group-hover:grayscale-0 [@media(hover:hover)]:group-hover:opacity-100'}`}
+                                                            onError={(e) => { e.target.onerror = null; e.target.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'; e.target.className="w-1/2 h-1/2 opacity-20" }}
                                                         />
                                                     </div>
-
-                                                    {/* 信息 */}
                                                     <div className="text-center w-full min-w-0">
-                                                        {/* 【2】编号字号加大到 text-xs, 和名称一致 */}
-                                                        <div className="text-xs font-bold text-slate-400 font-mono leading-none mb-0.5">
-                                                            {formatId(pokemon.id)}
-                                                        </div>
-                                                        <h3 className={`text-xs font-bold truncate leading-tight w-full ${isCaught ? 'text-red-700' : 'text-slate-700'}`}>
-                                                            {pokemon.name}
-                                                        </h3>
+                                                        <div className="text-xs font-bold text-slate-400 font-mono leading-none mb-0.5">{formatId(pokemon.id)}</div>
+                                                        <h3 className={`text-xs font-bold truncate leading-tight w-full ${isCaught ? 'text-red-700' : 'text-slate-700'}`}>{pokemon.name}</h3>
                                                     </div>
                                                 </div>
                                             );

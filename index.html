@@ -91,6 +91,13 @@
         const IconX = ({ className }) => (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         );
+        const IconArrowRight = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        );
+        // 【新增】垃圾桶图标
+        const IconTrash = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        );
 
         // --- 常量 ---
         const URL_NATIONAL = "https://raw.githubusercontent.com/42arch/pokemon-dataset-zh/main/data/pokedex/pokedex_national.json";
@@ -119,14 +126,12 @@
             "龙": "#7038F8", "Dragon": "#7038F8"
         };
         
-        // 招式分类颜色
         const CAT_COLORS = {
             "物理": "#C92112",
             "特殊": "#4F5870",
             "变化": "#8C888C"
         };
 
-        // 安全获取文本辅助函数
         const getText = (val) => {
             if (val === null || val === undefined) return '';
             if (typeof val === 'number') return val;
@@ -214,7 +219,6 @@
 
             return (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-                    {/* 弹窗圆角: rounded-3xl */}
                     <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col relative overflow-hidden animate-scale-up" onClick={e => e.stopPropagation()}>
                         
                         <button 
@@ -323,7 +327,6 @@
                                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">招式列表</h3>
                                         </div>
                                         <div className="overflow-x-auto">
-                                            {/* 招式列表对齐修复: table-valign-middle */}
                                             <table className="w-full text-left text-xs table-valign-middle">
                                                 <thead className="bg-white text-slate-500 font-medium border-b border-slate-100">
                                                     <tr>
@@ -414,6 +417,7 @@
             const [viewMode, setViewMode] = useState('all'); 
             const [searchQuery, setSearchQuery] = useState('');
             const [pokemonData, setPokemonData] = useState({ national: [], johto: [] });
+            const [allPokemonMap, setAllPokemonMap] = useState(new Map());
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             
@@ -440,6 +444,15 @@
                         if (!resNational.ok || !resJohto.ok) throw new Error("无法连接到数据源");
                         const dataNational = await resNational.json();
                         const dataJohto = await resJohto.json();
+
+                        const map = new Map();
+                        dataNational.forEach((p, idx) => {
+                            if(!p) return;
+                            const name = getText(p.names?.zh || p.name);
+                            const nid = p.national_index || p.national_id || (idx + 1);
+                            if (name) map.set(name, Number(nid));
+                        });
+                        setAllPokemonMap(map);
 
                         const normalize = (list, dexType) => {
                             if (!Array.isArray(list)) return [];
@@ -483,9 +496,9 @@
                     const currentScrollY = window.scrollY;
                     if (currentScrollY > 60) {
                         if (currentScrollY > lastScrollY.current) {
-                            setShowControls(false); 
+                            setShowControls(false); // 下滑隐藏
                         } else {
-                            setShowControls(true);  
+                            setShowControls(true);  // 上滑显示
                         }
                     } else {
                         setShowControls(true);
@@ -520,6 +533,7 @@
                 linkElement.click();
             };
 
+            // 【修改】导入后仅提示简单成功信息
             const handleImport = (event) => {
                 const fileReader = new FileReader();
                 const file = event.target.files[0];
@@ -530,6 +544,7 @@
                     try {
                         const importedData = JSON.parse(e.target.result);
                         if (Array.isArray(importedData)) {
+                            // 依然保留兼容逻辑以防万一，但不再提示给用户
                             const migratedData = importedData.map(item => {
                                 if (!isNaN(item) && !String(item).includes('-')) return String(item);
                                 if (typeof item === 'string') {
@@ -545,7 +560,7 @@
 
                             const newSet = new Set([...caughtList, ...migratedData]);
                             setCaughtList(newSet);
-                            alert(`成功导入记录！\n检测到旧版数据并已尝试迁移。\n当前共捕获 ${newSet.size} 只。`);
+                            alert(`成功导入！当前共捕获 ${newSet.size} 只。`); // 简化提示
                         } else {
                             alert("文件格式不正确");
                         }
@@ -584,6 +599,8 @@
 
             if (error) return <div className="flex flex-col items-center justify-center min-h-screen text-red-500"><p className="text-xl font-bold mb-2">出错了</p><p>{error}</p><button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-100 rounded-lg hover:bg-red-200 transition">重试</button></div>;
 
+            const isCaughtMode = viewMode === 'caught';
+
             return (
                 <div className="min-h-screen flex flex-col">
                     {/* Detail Modal */}
@@ -592,6 +609,7 @@
                             pokemonId={selectedPokemon.id} 
                             nationalId={selectedPokemon.imageId}
                             name={selectedPokemon.name}
+                            allPokemonMap={allPokemonMap}
                             onClose={() => setDetailModalOpen(false)} 
                         />
                     )}
@@ -654,8 +672,27 @@
                                 </div>
 
                                 <div className="flex gap-2 shrink-0">
-                                    <button onClick={() => setViewMode('all')} className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${viewMode === 'all' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>全部</button>
-                                    <button onClick={() => setViewMode('caught')} className={`px-3 py-1.5 rounded-full text-xs border transition-colors flex items-center gap-1 whitespace-nowrap ${viewMode === 'caught' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}><IconCheck className="w-3 h-3" />已捕获</button>
+                                    <button
+                                        onClick={() => setViewMode('all')}
+                                        className={`px-3 py-1.5 rounded-full text-xs border transition-colors whitespace-nowrap ${
+                                            viewMode === 'all'
+                                                ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                                                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        全部
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('caught')}
+                                        className={`px-3 py-1.5 rounded-full text-xs border transition-colors flex items-center gap-1 whitespace-nowrap ${
+                                            viewMode === 'caught'
+                                                ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                                                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <IconCheck className="w-3 h-3" />
+                                        已捕获
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -686,36 +723,67 @@
                                             const uniqueKey = `${currentDex}-${pokemon.id}`;
                                             const caughtKey = String(pokemon.imageId); 
                                             const isCaught = caughtList.has(caughtKey);
+                                            
+                                            // 【修改】核心交互逻辑：
+                                            // 1. 如果是 isCaughtMode (已捕获模式)，卡片显示为普通白色样式，不显示红色选中态。
+                                            // 2. 如果是 viewMode 'all'，则根据 isCaught 显示选中态。
+                                            const showAsCaught = isCaught && !isCaughtMode;
+
                                             return (
                                                 <div 
                                                     key={uniqueKey}
-                                                    onClick={() => toggleCaught(caughtKey)}
+                                                    // 【修改】已捕获模式下，点击卡片本身不触发 toggle (防止误触)，
+                                                    // 只有点垃圾桶才删除。普通模式下点击切换。
+                                                    onClick={() => !isCaughtMode && toggleCaught(caughtKey)}
                                                     className={`
                                                         relative group cursor-pointer rounded-xl p-2 transition-all duration-100 flex flex-col items-center justify-between bg-white box-border select-none
-                                                        ${isCaught ? 'border-2 border-red-500 bg-red-50' : 'border border-slate-200 [@media(hover:hover)]:hover:border-red-300 [@media(hover:hover)]:hover:shadow-sm'}
+                                                        ${showAsCaught 
+                                                            ? 'border-2 border-red-500 bg-red-50' 
+                                                            : 'border border-slate-200 [@media(hover:hover)]:hover:border-red-300 [@media(hover:hover)]:hover:shadow-sm'
+                                                        }
                                                     `}
                                                 >
-                                                    {isCaught && <div className="absolute top-1.5 right-1.5 text-red-500 bg-white rounded-full p-0.5 shadow-sm z-10"><IconCheck className="w-4 h-4" /></div>}
+                                                    {/* 【修改】标记渲染：
+                                                        - isCaughtMode: 显示垃圾桶图标 (点击删除)
+                                                        - 普通模式 & 已捕获: 显示红色对勾
+                                                    */}
+                                                    {isCaughtMode ? (
+                                                        <div 
+                                                            onClick={(e) => { e.stopPropagation(); toggleCaught(caughtKey); }}
+                                                            className="absolute top-1.5 right-1.5 p-1 text-slate-300 rounded-full bg-white border border-slate-100 shadow-sm z-10 hover:text-red-500 hover:border-red-200 transition-colors"
+                                                        >
+                                                            <IconTrash className="w-3.5 h-3.5" />
+                                                        </div>
+                                                    ) : (
+                                                        isCaught && <div className="absolute top-1.5 right-1.5 text-red-500 bg-white rounded-full p-0.5 shadow-sm z-10"><IconCheck className="w-4 h-4" /></div>
+                                                    )}
                                                     
                                                     <div className="w-full aspect-square relative flex items-center justify-center mb-1 p-2">
                                                         <img 
                                                             src={getImageUrl(pokemon.imageId)} 
                                                             alt={pokemon.name}
                                                             loading="lazy"
-                                                            className={`w-full h-full object-contain transition-all duration-300 ${isCaught ? 'filter-none scale-110 drop-shadow-sm' : 'grayscale opacity-60 scale-100 [@media(hover:hover)]:group-hover:grayscale-0 [@media(hover:hover)]:group-hover:opacity-100'}`}
+                                                            className={`
+                                                                w-full h-full object-contain transition-all duration-300 
+                                                                ${showAsCaught 
+                                                                    ? 'filter-none scale-110 drop-shadow-sm' 
+                                                                    : 'grayscale opacity-60 scale-100 [@media(hover:hover)]:group-hover:grayscale-0 [@media(hover:hover)]:group-hover:opacity-100'
+                                                                }
+                                                                /* 已捕获模式下强制全彩，因为它们确实已经被捕获了 */
+                                                                ${isCaughtMode ? '!filter-none !opacity-100 !grayscale-0' : ''}
+                                                            `}
                                                             onError={(e) => { e.target.onerror = null; e.target.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'; e.target.className="w-1/2 h-1/2 opacity-20" }}
                                                         />
                                                     </div>
                                                     
                                                     <div className="w-full flex items-end justify-between min-w-0">
                                                         <div className="text-left min-w-0 flex-1 pr-1">
-                                                            <div className={`text-xs font-bold font-mono leading-none mb-0.5 ${isCaught ? 'text-slate-800' : 'text-slate-400'}`}>
+                                                            <div className={`text-xs font-bold font-mono leading-none mb-0.5 ${showAsCaught ? 'text-slate-800' : 'text-slate-400'}`}>
                                                                 {formatId(pokemon.id)}
                                                             </div>
-                                                            <h3 className={`text-xs font-bold truncate leading-tight w-full ${isCaught ? 'text-red-700' : 'text-slate-700'}`}>{pokemon.name}</h3>
+                                                            <h3 className={`text-xs font-bold truncate leading-tight w-full ${showAsCaught ? 'text-red-700' : 'text-slate-700'}`}>{pokemon.name}</h3>
                                                         </div>
 
-                                                        {/* 【1】信息图标：透明背景，悬停加深颜色 */}
                                                         <div 
                                                             onClick={(e) => openDetail(e, pokemon)}
                                                             className="shrink-0 p-1 -mb-1 -mr-1 text-black/20 rounded-full transition-colors cursor-pointer [@media(hover:hover)]:hover:text-black/60"
